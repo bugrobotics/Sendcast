@@ -8,7 +8,7 @@
 :root{
   --bg:#ECEFEA; --surface:#F8F9F6; --fg:#1C221F; --muted:#5B655F; --line:#D3D9D2;
   --accent:#2E6A55; --accent-ink:#F4F8F5;
-  --prime:#23784C; --good:#5C8F2E; --fair:#B07A12; --poor:#A8402F;
+  --prime:#23784C; --good:#5C8F2E; --fair:#B07A12; --poor:#A8402F; --rain:#2F6DB5; --night:rgba(28,34,31,.06);
   --display:"Barlow Condensed","Arial Narrow",sans-serif;
   --body:"IBM Plex Sans",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
@@ -16,11 +16,11 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#141916; --surface:#1C231F; --fg:#E4EAE5; --muted:#98A39C; --line:#2E3832;
   --accent:#6FC4A0; --accent-ink:#0F1512;
-  --prime:#5BC88C; --good:#A4CF6A; --fair:#E3B04B; --poor:#E07A66; color-scheme:dark}}
+  --prime:#5BC88C; --good:#A4CF6A; --fair:#E3B04B; --poor:#E07A66; --rain:#6FA8E8; --night:rgba(0,0,0,.28); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#141916; --surface:#1C231F; --fg:#E4EAE5; --muted:#98A39C; --line:#2E3832;
   --accent:#6FC4A0; --accent-ink:#0F1512;
-  --prime:#5BC88C; --good:#A4CF6A; --fair:#E3B04B; --poor:#E07A66; color-scheme:dark}
+  --prime:#5BC88C; --good:#A4CF6A; --fair:#E3B04B; --poor:#E07A66; --rain:#6FA8E8; --night:rgba(0,0,0,.28); color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
 .wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:28px 48px;display:grid;gap:22px}
@@ -75,6 +75,28 @@ button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-de
 .hours summary::before{content:"▸";font-size:11px;transition:transform .15s}
 .hours[open] summary::before{transform:rotate(90deg)}
 .hours summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chart{position:relative;margin-top:10px}
+.chart svg{display:block;max-width:100%;height:auto;font-family:var(--mono);font-size:11px}
+.chart .night{fill:var(--night)}
+.chart .band{fill:var(--c);opacity:.09}
+.chart .bandlab,.chart .tick,.chart .paneltitle{fill:var(--muted)}
+.chart .paneltitle{font-family:var(--body);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.chart .daysep{stroke:var(--line);stroke-width:1}
+.chart .daylab{fill:var(--muted);cursor:pointer;font-family:var(--body);font-size:12px}
+.chart .daylab.on{fill:var(--fg);font-weight:600}
+.chart .win{fill:none;stroke:var(--fg);stroke-width:1;stroke-dasharray:3 3;opacity:.55}
+.chart .area{fill:var(--accent);opacity:.14}
+.chart .line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .rain{fill:var(--rain);opacity:.8}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .freeze{stroke:var(--rain);stroke-width:1;stroke-dasharray:4 3;opacity:.7}
+.chart .tline{fill:none;stroke:var(--fg);stroke-width:1.75;opacity:.75;stroke-linejoin:round}
+.chart .hit{fill:transparent;cursor:crosshair}
+.chart .xline{stroke:var(--muted);stroke-width:1}
+.chart .dot{fill:var(--accent);stroke:var(--bg);stroke-width:2}
+.chart .tdot{fill:var(--fg);stroke:var(--bg);stroke-width:2}
+.tip{position:absolute;top:28px;display:grid;gap:1px;padding:7px 9px;background:var(--surface);border:1px solid var(--line);border-radius:6px;font-size:12px;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.12);white-space:nowrap}
+.tip b{font-weight:600}
 .strip{overflow-x:auto;margin-top:8px;padding-bottom:4px}
 .strip-in{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(42px,1fr);gap:3px;min-width:max-content;font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums;text-align:center}
 .cell{display:grid;grid-template-rows:auto 46px auto auto auto;gap:2px;padding:4px 2px;border-radius:5px}
@@ -509,10 +531,70 @@ function strip(c,j,style,r){
       <span class="${p>0.01?"rn":"wx"}">${p>0.01?p.toFixed(2)+'"':Math.round(w.ws[h])+"mph"}</span></div>`;
   }
   return `<details class="hours" id="hrs-${j}"${openRows.has(j)?" open":""}><summary>Hourly · ${slotSet()?"your slot":"best"} ${winLabel(r)}</summary>
+    <div class="chart" data-j="${j}"></div>
     <div class="strip"><div class="strip-in">${cells}</div></div>
     <div class="legend">Bar and number: hourly score. Below: temperature, then wind (or rain in inches). Outlined hours are ${slotSet()?"your time slot":"the best window"}.</div></details>`;
 }
 const openRows=new Set();
+
+// ---------- 5-day line chart (score over time, temperature beneath on its own axis) ----------
+const BANDS=[["prime",80,100,"Prime"],["good",62,80,"Good"],["fair",40,62,"Fair"],["poor",0,40,"Poor"]];
+function drawChart(box){
+  if(!box||!state.wx) return;
+  const j=+box.dataset.j, c=CRAGS[j], style=state.style==="all"?null:state.style;
+  const w=state.wx.byCrag[j], hs=hoursFor(c,j,style), r=dayResult(c,j,style,state.day);
+  const H0=PAST*24, H1=(PAST+DAYS)*24-1, W=Math.max(320,box.clientWidth||640);
+  const L=34, R=44, T=22, SH=130, GAP=26, TH=64, B=8, HT=T+SH+GAP+TH+B;
+  const x=h=>L+(h-H0)/(H1-H0)*(W-L-R);
+  const ys=v=>T+SH-(v/100)*SH;
+  const temps=w.t.slice(H0,H1+1), tMin=Math.floor(Math.min(...temps)/10)*10, tMax=Math.ceil(Math.max(...temps)/10)*10||tMin+10;
+  const yt=v=>T+SH+GAP+TH-((v-tMin)/(tMax-tMin||1))*TH;
+  let g="";
+  // night shading
+  for(let h=H0;h<=H1;h++){ if(!w.day[h]){ let e=h; while(e<H1&&!w.day[e+1]) e++; g+=`<rect class="night" x="${x(h)}" y="${T}" width="${x(e+1)-x(h)}" height="${SH+GAP+TH}"/>`; h=e; } }
+  // score bands + labels
+  for(const [k,lo,hi,lab] of BANDS){ g+=`<rect class="band r-${k}" x="${L}" y="${ys(hi)}" width="${W-L-R}" height="${ys(lo)-ys(hi)}"/><text class="bandlab" x="${W-R+6}" y="${(ys(lo)+ys(hi))/2+4}">${lab}</text>`; }
+  for(const v of [0,50,100]) g+=`<text class="tick" x="${L-6}" y="${ys(v)+4}" text-anchor="end">${v}</text>`;
+  // day separators + labels (click to select a day)
+  for(let d=0;d<DAYS;d++){
+    const hx=x(H0+d*24), mid=x(H0+d*24+12);
+    if(d) g+=`<line class="daysep" x1="${hx}" x2="${hx}" y1="${T}" y2="${T+SH+GAP+TH}"/>`;
+    g+=`<text class="daylab${d===state.day?" on":""}" data-d="${d}" x="${mid}" y="${T-8}" text-anchor="middle">${d===0?"Today":dayLabel(d).replace(/,.*$/,"")}</text>`;
+  }
+  // selected window / slot
+  g+=`<rect class="win" x="${x(r.win[0])}" y="${T}" width="${x(r.win[r.win.length-1]+1)-x(r.win[0])}" height="${SH}"/>`;
+  // score area + line
+  let pts=""; for(let h=H0;h<=H1;h++) pts+=`${x(h).toFixed(1)},${ys(hs[h].s).toFixed(1)} `;
+  g+=`<polygon class="area" points="${x(H0)},${ys(0)} ${pts}${x(H1)},${ys(0)}"/><polyline class="line" points="${pts}"/>`;
+  // rain ticks along the score baseline
+  for(let h=H0;h<=H1;h++) if((w.p[h]||0)>0.01) g+=`<rect class="rain" x="${x(h)}" y="${ys(0)-Math.min(18,4+w.p[h]*120)}" width="${Math.max(2,x(h+1)-x(h)-1)}" height="${Math.min(18,4+w.p[h]*120)}"/>`;
+  // temperature panel
+  g+=`<text class="paneltitle" x="${L}" y="${T+SH+GAP-8}">Temperature °F</text>`;
+  for(const v of [tMin,tMax]) g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${yt(v)}" y2="${yt(v)}"/><text class="tick" x="${L-6}" y="${yt(v)+4}" text-anchor="end">${v}</text>`;
+  if(tMin<32&&tMax>32) g+=`<line class="freeze" x1="${L}" x2="${W-R}" y1="${yt(32)}" y2="${yt(32)}"/><text class="tick" x="${W-R+6}" y="${yt(32)+4}">32°</text>`;
+  let tp=""; for(let h=H0;h<=H1;h++) tp+=`${x(h).toFixed(1)},${yt(w.t[h]).toFixed(1)} `;
+  g+=`<polyline class="tline" points="${tp}"/>`;
+  g+=`<g class="cross" visibility="hidden"><line class="xline" y1="${T}" y2="${T+SH+GAP+TH}"/><circle class="dot" r="4"/><circle class="tdot" r="3.5"/></g>`;
+  g+=`<rect class="hit" x="${L}" y="${T}" width="${W-L-R}" height="${SH+GAP+TH}"/>`;
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${HT}" width="${W}" height="${HT}" role="img" aria-label="Hourly climbing score and temperature for ${esc(c.name)} over ${DAYS} days">${g}</svg><div class="tip" hidden></div>`;
+  const svg=box.firstChild, tip=box.lastChild, cross=svg.querySelector(".cross");
+  svg.querySelector(".hit").addEventListener("pointermove",e=>{
+    const rect=svg.getBoundingClientRect(), px=(e.clientX-rect.left)*(W/rect.width);
+    const h=Math.max(H0,Math.min(H1,Math.round(H0+(px-L)/(W-L-R)*(H1-H0)))), sc=hs[h].s, [,lab]=rating(sc);
+    cross.setAttribute("visibility","visible");
+    cross.querySelector(".xline").setAttribute("x1",x(h)); cross.querySelector(".xline").setAttribute("x2",x(h));
+    const dot=cross.querySelector(".dot"); dot.setAttribute("cx",x(h)); dot.setAttribute("cy",ys(sc));
+    const td=cross.querySelector(".tdot"); td.setAttribute("cx",x(h)); td.setAttribute("cy",yt(w.t[h]));
+    const day=Math.floor((h-H0)/24), p=w.p[h]||0;
+    tip.innerHTML=`<b>${dayLabel(day)} ${hourLabel(h)}</b><span>Score ${sc} · ${lab}</span><span>${Math.round(w.t[h])}°F · ${Math.round(w.rh[h])}% RH</span><span>Wind ${Math.round(w.ws[h])}, gusts ${Math.round(w.wg[h]||0)} mph</span>${p>0.005?`<span>Rain ${p.toFixed(2)}"</span>`:""}${hs[h].wet>0.03?`<span>Rock likely wet</span>`:""}`;
+    tip.hidden=false;
+    const left=x(h)*(rect.width/W), tw=tip.offsetWidth;
+    tip.style.left=Math.max(0,Math.min(rect.width-tw, left+12>rect.width-tw?left-tw-12:left+12))+"px";
+  });
+  svg.querySelector(".hit").addEventListener("pointerleave",()=>{cross.setAttribute("visibility","hidden"); tip.hidden=true;});
+  svg.querySelectorAll(".daylab").forEach(t=>t.addEventListener("click",()=>{state.day=+t.dataset.d; renderDays(); render();}));
+}
+let rsz; addEventListener("resize",()=>{clearTimeout(rsz); rsz=setTimeout(()=>document.querySelectorAll("details.hours[open] .chart").forEach(drawChart),150);});
 function render(){
   if(!state.wx) return;
   const style=state.style==="all"?null:state.style, dr=state.drive;
@@ -549,7 +631,10 @@ function render(){
       <div class="score r-${k}"><b>${r.s}</b><span class="chip">${l}</span></div>
       ${strip(r.c,r.j,style,r)}
     </article>`;}).join("");
-  document.querySelectorAll("details.hours").forEach(el=>el.addEventListener("toggle",()=>{const j=+el.id.slice(4); el.open?openRows.add(j):openRows.delete(j);}));
+  document.querySelectorAll("details.hours").forEach(el=>{
+    el.addEventListener("toggle",()=>{const j=+el.id.slice(4); if(el.open){openRows.add(j); drawChart(el.querySelector(".chart"));} else openRows.delete(j);});
+    if(el.open) drawChart(el.querySelector(".chart"));
+  });
 }
 function winLabel(r){return hourLabel(r.win[0])+"–"+hourLabel(r.win[r.win.length-1]+1)}
 function nameLink(c){return c.mp?`<a href="${esc(c.mp)}" target="_blank" rel="noopener">${esc(c.name)}</a>`:esc(c.name)}
