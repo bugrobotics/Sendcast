@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Front Range Sendcast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: control strip, one headline pick, then a ranked list of crags; one column on phones. */
+:root{
+  --bg:#ECEFEA; --surface:#F8F9F6; --fg:#1C221F; --muted:#5B655F; --line:#D3D9D2;
+  --accent:#2E6A55; --accent-ink:#F4F8F5;
+  --prime:#23784C; --good:#5C8F2E; --fair:#B07A12; --poor:#A8402F;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141916; --surface:#1C231F; --fg:#E4EAE5; --muted:#98A39C; --line:#2E3832;
+  --accent:#6FC4A0; --accent-ink:#0F1512;
+  --prime:#5BC88C; --good:#A4CF6A; --fair:#E3B04B; --poor:#E07A66; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141916; --surface:#1C231F; --fg:#E4EAE5; --muted:#98A39C; --line:#2E3832;
+  --accent:#6FC4A0; --accent-ink:#0F1512;
+  --prime:#5BC88C; --good:#A4CF6A; --fair:#E3B04B; --poor:#E07A66; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:28px 48px;display:grid;gap:22px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,6vw,52px);line-height:1;margin:0;letter-spacing:.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:6px 0 0;max-width:62ch}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.controls{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:end;padding-block:14px;border-block:1px solid var(--line)}
+.ctl{display:grid;gap:5px;min-width:0}
+select,button{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 10px}
+button{cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-loc{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.radius{display:flex;align-items:center;gap:10px}
+input[type=range]{accent-color:var(--accent);width:160px}
+.radius output{font-family:var(--mono);font-size:14px;min-width:6ch}
+.days{display:flex;gap:6px;flex-wrap:wrap}
+.days button{padding:6px 10px}
+.days button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.notice{font-size:13px;color:var(--muted);border-left:3px solid var(--fair);padding:6px 12px;background:var(--surface)}
+.pick{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;padding:18px 20px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.pick .big{font-family:var(--display);font-size:64px;font-weight:700;line-height:.9;font-variant-numeric:tabular-nums}
+.pick h2{font-family:var(--display);font-size:30px;margin:2px 0;line-height:1.05}
+.pick p{margin:0;color:var(--muted)}
+.list{display:grid;gap:0;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:2.2rem minmax(0,1.5fr) minmax(0,2fr) 4.5rem;gap:14px;align-items:start;padding:14px 4px;border-bottom:1px solid var(--line)}
+.rank{font-family:var(--mono);color:var(--muted);padding-top:3px}
+.name{font-weight:600}
+.meta{font-size:13px;color:var(--muted)}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.tag{font-size:11px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 10px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-family:var(--body);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.why{grid-column:1/-1;font-size:13px;color:var(--muted);margin-top:4px}
+.score{justify-self:end;text-align:right}
+.score b{display:block;font-family:var(--display);font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--c)}
+.score b{color:var(--c)}
+.r-prime{--c:var(--prime)} .r-good{--c:var(--good)} .r-fair{--c:var(--fair)} .r-poor{--c:var(--poor)}
+.empty{padding:24px 4px;color:var(--muted)}
+.foot{font-size:12px;color:var(--muted);max-width:70ch}
+@media (max-width:680px){
+  .row{grid-template-columns:1.6rem minmax(0,1fr) 3.8rem}
+  .stats{grid-column:2/-1;grid-row:2}
+  .pick{grid-template-columns:1fr}
+  .pick .big{font-size:52px}
+}
+@media (prefers-reduced-motion:no-preference){.row{transition:background .15s}.row:hover{background:var(--surface)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Front Range Sendcast</h1>
+    <p class="sub">Where the rock is best within your range today, across 24 Front Range areas. Scores weigh friction temperature, humidity, wind, sky, and whether recent rain has had time to dry off each crag's rock type.</p>
+  </header>
+
+  <section class="controls" aria-label="Search settings">
+    <div class="ctl">
+      <label class="label" for="origin">Starting from</label>
+      <select id="origin">
+        <option value="39.7392,-104.9903">Denver</option>
+        <option value="40.0150,-105.2705">Boulder</option>
+        <option value="39.7555,-105.2211">Golden</option>
+        <option value="39.6333,-105.3172">Evergreen</option>
+        <option value="40.5853,-105.0844">Fort Collins</option>
+        <option value="40.3978,-105.0749">Loveland</option>
+        <option value="38.8339,-104.8214">Colorado Springs</option>
+      </select>
+    </div>
+    <div class="ctl">
+      <span class="label">&nbsp;</span>
+      <button class="btn-loc" id="locate" type="button">Use my location</button>
+    </div>
+    <div class="ctl">
+      <label class="label" for="radius">Within (road miles)</label>
+      <div class="radius"><input id="radius" type="range" min="10" max="250" step="5" value="50"><output id="radiusOut" for="radius">50 mi</output></div>
+    </div>
+    <div class="ctl">
+      <span class="label">Day</span>
+      <div class="days" id="days" role="group" aria-label="Forecast day"></div>
+    </div>
+  </section>
+
+  <p class="notice" id="notice" hidden></p>
+  <section class="pick" id="pick" aria-live="polite"></section>
+  <section class="list" id="list" aria-label="Crags ranked by conditions"></section>
+
+  <p class="foot">Forecasts from Open-Meteo, requested at each crag's own elevation (US runs use the ~3 km HRRR blend). Drive times and road miles come from the OSRM router on OpenStreetMap roads. They don't include traffic or the last stretch on dirt roads, and the radius filters by road miles. Crag coordinates are approximate; always check access, closures and raptor seasons before you go.</p>
+</div>
+
+<script>
+// name, area, lat, lon, elevation ft, rock, primary aspect, style
+const CRAGS = [
+ ["Golden Cliffs","North Table Mtn",39.783,-105.208,6000,"basalt","S","sport"],
+ ["Clear Creek Canyon","Golden",39.745,-105.255,6600,"gneiss","mixed","sport"],
+ ["Morrison Boulders","Morrison",39.653,-105.190,6100,"sandstone","mixed","boulder"],
+ ["Eldorado Canyon","Eldorado Springs",39.931,-105.290,6000,"sandstone","mixed","trad"],
+ ["Flatirons","Boulder",39.987,-105.293,7000,"sandstone","E","trad"],
+ ["Flagstaff Mountain","Boulder",40.001,-105.305,6900,"sandstone","mixed","boulder"],
+ ["Boulder Canyon","Boulder",40.004,-105.400,6800,"granite","mixed","sport"],
+ ["Castlewood Canyon","Franktown",39.334,-104.747,6200,"conglomerate","mixed","sport"],
+ ["Staunton State Park","Pine",39.495,-105.392,9000,"granite","S","trad"],
+ ["Mt. Blue Sky Boulders","Evergreen",39.588,-105.643,12800,"granite","mixed","boulder"],
+ ["Guanella Pass","Georgetown",39.605,-105.710,11600,"granite","mixed","boulder"],
+ ["Turkey Rocks","South Platte",39.135,-105.226,7900,"granite","S","trad"],
+ ["Elevenmile Canyon","Lake George",38.950,-105.430,8000,"granite","mixed","sport"],
+ ["Garden of the Gods","Colorado Springs",38.878,-104.880,6400,"sandstone","mixed","trad"],
+ ["Shelf Road","Cañon City",38.635,-105.226,6300,"limestone","S","sport"],
+ ["Carter Lake","Loveland",40.334,-105.212,5800,"granite","mixed","boulder"],
+ ["Horsetooth Reservoir","Fort Collins",40.546,-105.156,5500,"sandstone","mixed","boulder"],
+ ["Poudre Canyon","Bellvue",40.690,-105.300,6200,"granite","mixed","boulder"],
+ ["420 Boulders","Upper Poudre Canyon",40.708,-105.752,7760,"granite","mixed","boulder"],
+ ["St. Vrain Canyon","Lyons",40.160,-105.366,7690,"granite","mixed","boulder"],
+ ["Elkland","Estes Park",40.386,-105.548,7870,"granite","mixed","boulder"],
+ ["Lumpy Ridge","Estes Park",40.405,-105.515,8500,"granite","S","trad"],
+ ["RMNP Alpine Boulders","Estes Park",40.311,-105.665,10000,"granite","mixed","boulder"],
+ ["Vedauwoo","Laramie, WY",41.150,-105.370,8200,"granite","mixed","trad"]
+].map(([name,area,lat,lon,elev,rock,aspect,style])=>({name,area,lat,lon,elev,rock,aspect,style}));
+
+// How much longer a rock type needs to shed rain, relative to granite.
+const DRY = {sandstone:2.2, conglomerate:1.6, limestone:1.0, granite:1.0, gneiss:1.0, basalt:0.9};
+const PAST = 2, DAYS = 5;
+
+const $ = id => document.getElementById(id);
+const state = {origin:{lat:39.7392,lon:-104.9903,label:"Denver"}, radius:50, day:0, wx:null, live:false, drive:null, driveOk:null};
+const driveCache = new Map();
+// Drive time and road distance from the origin to every crag, from the free OSRM router (OpenStreetMap roads, no live traffic).
+async function updateDrive(){
+  const o=state.origin, key=o.lat.toFixed(3)+","+o.lon.toFixed(3);
+  state.drive=driveCache.get(key)||null; render();
+  if(state.drive) return;
+  try{
+    const pts=[o,...CRAGS].map(p=>p.lon.toFixed(4)+","+p.lat.toFixed(4)).join(";");
+    const res=await fetch(`https://router.project-osrm.org/table/v1/driving/${pts}?sources=0&annotations=duration,distance`,{signal:AbortSignal.timeout(9000)});
+    const j=await res.json(); if(j.code!=="Ok") throw new Error(j.code);
+    const rows=j.durations[0].slice(1).map((sec,k)=>sec==null?null:{min:sec/60, mi:j.distances[0][k+1]/1609.34});
+    driveCache.set(key,rows);
+    if(state.origin===o){state.drive=rows; state.driveOk=true;}
+  }catch(e){ state.driveOk=false; }
+  updateNotice(); render();
+}
+function updateNotice(){
+  const msgs=[];
+  if(state.live===false && state.wxTried) msgs.push("Showing example conditions because this view can't reach the live forecast service.");
+  if(state.driveOk===false) msgs.push("Drive times are unavailable here, so distances are straight-line.");
+  if(msgs.length) msgs.push("Open the standalone file in your browser for live forecasts and drive times.");
+  $("notice").hidden=!msgs.length; $("notice").textContent=msgs.join(" ");
+}
+try{ const r = Number(localStorage.getItem("sendcast.radius")); if(r>=10&&r<=250) state.radius=r; }catch(e){}
+
+function miles(a,b){
+  const R=3958.8, t=Math.PI/180, dLat=(b.lat-a.lat)*t, dLon=(b.lon-a.lon)*t;
+  const h=Math.sin(dLat/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const lerp=(x,x0,x1,y0,y1)=>y0+(y1-y0)*clamp((x-x0)/(x1-x0));
+
+// ---------- scoring ----------
+function score(c, w, i){
+  const hi=w.tmax[i], lo=w.tmin[i], rain=w.pr[i], wind=w.wind[i], rh=w.rh[i], cloud=w.cloud[i];
+  let feel = 0.7*hi + 0.3*lo;                         // climbing-hours temperature
+  const sun = 1 - cloud/100;
+  if (c.aspect==="S") feel += 9*sun;                  // sun-baked walls run warmer
+  if (c.aspect==="E") feel += 3*sun;
+  const tS = feel<45 ? lerp(feel,22,45,0,1) : feel<=62 ? 1 : lerp(feel,62,88,1,0);
+  const hS = lerp(rh,35,85,1,0.15);
+  const wS = wind<=10 ? 1 : lerp(wind,10,32,1,0.1);
+  const skyS = feel<45 ? 0.5+0.5*sun : 1-0.3*Math.max(0,sun-0.6); // sun helps when cold, hurts a bit when hot
+  const base = 0.45*tS + 0.2*hS + 0.2*wS + 0.15*skyS;
+  const rainToday = rain<=0.01 ? 1 : lerp(rain,0.01,0.3,0.6,0);
+  const prev = (w.pr[i-1]||0) + 0.5*(w.pr[i-2]||0);
+  const wet = clamp(prev*(DRY[c.rock]||1)*3.5);
+  const s = Math.round(100*base*rainToday*(1-0.85*wet));
+  const notes=[];
+  if (rain>0.01) notes.push(`${rain.toFixed(2)}" of rain forecast`);
+  if (wet>0.25) notes.push(c.rock==="sandstone" ? "sandstone still drying from recent rain; wet sandstone breaks, so give it 24–48 h" : `rock may be damp after ${prev.toFixed(2)}" in the last two days`);
+  if (feel<38) notes.push("cold; bring belay puffy" + (c.aspect==="S"?"":" and look for sun-facing lines"));
+  else if (feel>72) notes.push("warm; aim for shade or early morning");
+  else if (tS>=0.95) notes.push("friction-range temps");
+  if (wind>20) notes.push(`gusty, ${Math.round(wind)} mph max`);
+  if (rh<35 && tS>0.8 && rain<=0.01) notes.push("crisp and dry");
+  return {s:clamp(s,0,100), feel, notes};
+}
+const rating = s => s>=80?["prime","Prime"]:s>=62?["good","Good"]:s>=40?["fair","Fair"]:["poor","Poor"];
+
+// ---------- data ----------
+async function loadLive(){
+  const q = new URLSearchParams({
+    latitude:CRAGS.map(c=>c.lat).join(","), longitude:CRAGS.map(c=>c.lon).join(","),
+    elevation:CRAGS.map(c=>Math.round(c.elev*0.3048)).join(","),
+    daily:"temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,cloud_cover_mean",
+    temperature_unit:"fahrenheit", wind_speed_unit:"mph", precipitation_unit:"inch",
+    timezone:"America/Denver", past_days:PAST, forecast_days:DAYS
+  });
+  const res = await fetch("https://api.open-meteo.com/v1/forecast?"+q, {signal:AbortSignal.timeout(9000)});
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const arr = await res.json();
+  return {dates:arr[0].daily.time, byCrag:arr.map(o=>({tmax:o.daily.temperature_2m_max,tmin:o.daily.temperature_2m_min,pr:o.daily.precipitation_sum,wind:o.daily.wind_speed_10m_max,rh:o.daily.relative_humidity_2m_mean,cloud:o.daily.cloud_cover_mean}))};
+}
+
+// Example conditions for views that can't reach the forecast service. Deterministic, elevation-aware, clearly labelled.
+function sampleData(){
+  const start=new Date(); start.setDate(start.getDate()-PAST);
+  const dates=[...Array(PAST+DAYS)].map((_,k)=>{const d=new Date(start);d.setDate(d.getDate()+k);return d.toISOString().slice(0,10)});
+  const storm=[0,0.25,0,0,0.05,0,0], cloudy=[30,80,40,15,55,20,35], windy=[9,14,8,7,18,11,9], warm=[0,-6,-2,3,-4,1,4];
+  const byCrag=CRAGS.map((c,j)=>{
+    const lapse=(c.elev-5300)/1000*3.6, jit=k=>((j*7+k*13)%5)-2;
+    return {tmax:dates.map((_,k)=>Math.round(66+warm[k]-lapse+jit(k))), tmin:dates.map((_,k)=>Math.round(40+warm[k]-lapse*0.8+jit(k))),
+      pr:dates.map((_,k)=>+(storm[k]*(c.elev>8000?1.4:c.lat>40.3?1.1:j%3?0.6:1)).toFixed(2)),
+      wind:dates.map((_,k)=>Math.round(windy[k]*(c.elev>10000?2:1)+jit(k))), rh:dates.map((_,k)=>40+cloudy[k]/3+jit(k)*2), cloud:dates.map((_,k)=>cloudy[k])};
+  });
+  return {dates,byCrag};
+}
+
+// ---------- render ----------
+function dayLabel(iso,k){
+  if(k===0) return "Today"; if(k===1) return "Tomorrow";
+  return new Date(iso+"T12:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+}
+function renderDays(){
+  $("days").replaceChildren(...[...Array(DAYS)].map((_,k)=>{
+    const b=document.createElement("button"); b.type="button"; b.id="day"+k;
+    b.textContent=dayLabel(state.wx.dates[PAST+k],k); b.setAttribute("aria-pressed",String(k===state.day));
+    b.onclick=()=>{state.day=k; renderDays(); render();}; return b;
+  }));
+}
+function render(){
+  if(!state.wx) return;
+  const i=PAST+state.day;
+  const dr=state.drive;
+  const rows=CRAGS.map((c,j)=>{
+    const road=dr&&dr[j]; const d=road?road.mi:miles(state.origin,c);
+    return {c, d, t:road?road.min:null, ...score(c,state.wx.byCrag[j],i), w:state.wx.byCrag[j]};
+  }).filter(r=>r.d<=state.radius).sort((a,b)=>b.s-a.s||(a.t??a.d)-(b.t??b.d));
+  const when=dayLabel(state.wx.dates[i],state.day).toLowerCase();
+  if(!rows.length){
+    $("pick").innerHTML=`<p>No crags within ${state.radius} mi of ${state.origin.label}. Widen the radius to see options.</p>`;
+    $("list").innerHTML=""; return;
+  }
+  const top=rows[0], [rk,rl]=rating(top.s);
+  $("pick").innerHTML=`<div class="big r-${rk}" style="color:var(--c)">${top.s}</div>
+    <div><div class="label">Best ${when} within ${state.radius} mi of ${esc(state.origin.label)}</div>
+    <h2>${esc(top.c.name)}</h2><p>${away(top)} · ${rl} · ${Math.round(top.w.tmax[i])}°/${Math.round(top.w.tmin[i])}°F · ${esc(top.notes[0]||"solid all-round conditions")}</p></div>`;
+  $("list").innerHTML=rows.map((r,n)=>{
+    const [k,l]=rating(r.s), w=r.w;
+    return `<article class="row">
+      <div class="rank">${String(n+1).padStart(2,"0")}</div>
+      <div><div class="name">${esc(r.c.name)}</div>
+        <div class="meta">${esc(r.c.area)} · ${away(r)} · ${r.c.elev.toLocaleString()} ft</div>
+        <div class="tags"><span class="tag">${r.c.rock}</span><span class="tag">${r.c.style}</span>${r.c.aspect!=="mixed"?`<span class="tag">${r.c.aspect}-facing</span>`:""}</div></div>
+      <div class="stats">
+        <div><span>Hi / Lo</span>${Math.round(w.tmax[i])}° / ${Math.round(w.tmin[i])}°</div>
+        <div><span>Wind</span>${Math.round(w.wind[i])} mph</div>
+        <div><span>Humidity</span>${Math.round(w.rh[i])}%</div>
+        <div><span>Rain 48h</span>${((w.pr[i-1]||0)+(w.pr[i-2]||0)).toFixed(2)}"</div>
+        ${r.notes.length?`<div class="why">${esc(r.notes.join("; "))}.</div>`:""}
+      </div>
+      <div class="score r-${k}"><b>${r.s}</b><span class="chip">${l}</span></div>
+    </article>`;}).join("");
+}
+function hm(m){m=Math.round(m);return m<60?m+" min":Math.floor(m/60)+" h "+String(m%60).padStart(2,"0")+" min"}
+function away(r){return r.t!=null?`${hm(r.t)} drive (${Math.round(r.d)} road mi)`:`${Math.round(r.d)} mi straight-line`}
+function esc(s){return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}
+
+// ---------- controls ----------
+$("radius").value=state.radius; $("radiusOut").textContent=state.radius+" mi";
+$("radius").oninput=e=>{state.radius=+e.target.value; $("radiusOut").textContent=state.radius+" mi"; try{localStorage.setItem("sendcast.radius",state.radius)}catch(_){}; render();};
+$("origin").onchange=e=>{const [lat,lon]=e.target.value.split(",").map(Number); state.origin={lat,lon,label:e.target.selectedOptions[0].textContent}; updateDrive();};
+$("locate").onclick=()=>{
+  const btn=$("locate");
+  if(!navigator.geolocation){btn.textContent="Location unavailable";return;}
+  btn.textContent="Locating…";
+  navigator.geolocation.getCurrentPosition(p=>{
+    state.origin={lat:p.coords.latitude,lon:p.coords.longitude,label:"you"}; btn.textContent="Using your location"; updateDrive();
+  },()=>{btn.textContent="Location blocked; pick a town";},{timeout:8000,maximumAge:600000});
+};
+
+(async()=>{
+  state.wx=sampleData(); renderDays(); render();   // paint immediately
+  updateDrive();
+  try{ state.wx=await loadLive(); state.live=true; }
+  catch(e){ state.live=false; }
+  state.wxTried=true; updateNotice(); renderDays(); render();
+})();
+</script>
+
+</body></html>
