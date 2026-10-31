@@ -53,13 +53,34 @@ input[type=range]{accent-color:var(--accent);width:160px}
 .tag{font-size:11px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--muted)}
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 10px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
 .stats span{display:block;font-family:var(--body);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-.why{grid-column:1/-1;font-size:13px;color:var(--muted);margin-top:4px}
+.name a{color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.name a:hover{text-decoration-color:var(--accent)}
+.pick h2 a{color:inherit;text-decoration:none}
+.access{font-size:12px;color:var(--fair);margin-top:5px}
+.tag.st-boulder,.tag.st-sport,.tag.st-trad{color:var(--fg);border-color:var(--muted)}
+.why{grid-column:1/-1;font-family:var(--body);font-size:13px;color:var(--muted);margin-top:4px}
 .score{justify-self:end;text-align:right}
 .score b{display:block;font-family:var(--display);font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
 .chip{display:inline-block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--c)}
 .score b{color:var(--c)}
 .r-prime{--c:var(--prime)} .r-good{--c:var(--good)} .r-fair{--c:var(--fair)} .r-poor{--c:var(--poor)}
 .empty{padding:24px 4px;color:var(--muted)}
+.hours{grid-column:1/-1;margin-top:2px}
+.hours summary{cursor:pointer;font-size:13px;color:var(--accent);font-weight:500;list-style:none;display:inline-flex;gap:6px;align-items:center}
+.hours summary::-webkit-details-marker{display:none}
+.hours summary::before{content:"▸";font-size:11px;transition:transform .15s}
+.hours[open] summary::before{transform:rotate(90deg)}
+.hours summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.strip{overflow-x:auto;margin-top:8px;padding-bottom:4px}
+.strip-in{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(42px,1fr);gap:3px;min-width:max-content;font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums;text-align:center}
+.cell{display:grid;grid-template-rows:auto 46px auto auto auto;gap:2px;padding:4px 2px;border-radius:5px}
+.cell.win{background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)}
+.cell .h{color:var(--muted)}
+.bar{align-self:end;justify-self:center;width:70%;border-radius:3px 3px 1px 1px;background:var(--c);min-height:3px}
+.cell .sc{font-weight:500;color:var(--c)}
+.cell .wx{color:var(--muted)}
+.cell .rn{color:var(--poor)}
+.legend{font-size:12px;color:var(--muted);margin-top:6px}
 .foot{font-size:12px;color:var(--muted);max-width:70ch}
 @media (max-width:680px){
   .row{grid-template-columns:1.6rem minmax(0,1fr) 3.8rem}
@@ -73,7 +94,7 @@ input[type=range]{accent-color:var(--accent);width:160px}
 <div class="wrap">
   <header>
     <h1>Front Range Sendcast</h1>
-    <p class="sub">Where the rock is best within your range today, across 24 Front Range areas. Scores weigh friction temperature, humidity, wind, sky, and whether recent rain has had time to dry off each crag's rock type.</p>
+    <p class="sub">Where the rock is best within your range today, across <span id="count">all</span> Colorado-area crags. Every hour gets a score from friction temperature, sun on the rock, humidity, wind and rain, and whether the rock has dried since the last storm. The day's score is the best three-hour window of daylight.</p>
   </header>
 
   <section class="controls" aria-label="Search settings">
@@ -87,6 +108,11 @@ input[type=range]{accent-color:var(--accent);width:160px}
         <option value="40.5853,-105.0844">Fort Collins</option>
         <option value="40.3978,-105.0749">Loveland</option>
         <option value="38.8339,-104.8214">Colorado Springs</option>
+        <option value="38.5347,-105.9989">Salida</option>
+        <option value="39.5505,-107.3248">Glenwood Springs</option>
+        <option value="39.0639,-108.5506">Grand Junction</option>
+        <option value="37.2753,-107.8801">Durango</option>
+        <option value="41.3114,-105.5911">Laramie</option>
       </select>
     </div>
     <div class="ctl">
@@ -98,6 +124,15 @@ input[type=range]{accent-color:var(--accent);width:160px}
       <div class="radius"><input id="radius" type="range" min="10" max="250" step="5" value="50"><output id="radiusOut" for="radius">50 mi</output></div>
     </div>
     <div class="ctl">
+      <span class="label">Style</span>
+      <div class="days" id="styles" role="group" aria-label="Climbing style">
+        <button type="button" id="st-all" data-st="all">All</button>
+        <button type="button" id="st-boulder" data-st="boulder">Bouldering</button>
+        <button type="button" id="st-sport" data-st="sport">Sport</button>
+        <button type="button" id="st-trad" data-st="trad">Trad</button>
+      </div>
+    </div>
+    <div class="ctl">
       <span class="label">Day</span>
       <div class="days" id="days" role="group" aria-label="Forecast day"></div>
     </div>
@@ -107,55 +142,197 @@ input[type=range]{accent-color:var(--accent);width:160px}
   <section class="pick" id="pick" aria-live="polite"></section>
   <section class="list" id="list" aria-label="Crags ranked by conditions"></section>
 
-  <p class="foot">Forecasts from Open-Meteo, requested at each crag's own elevation (US runs use the ~3 km HRRR blend). Drive times and road miles come from the OSRM router on OpenStreetMap roads. They don't include traffic or the last stretch on dirt roads, and the radius filters by road miles. Crag coordinates are approximate; always check access, closures and raptor seasons before you go.</p>
+  <p class="foot">Hourly forecasts from Open-Meteo, requested at each crag's own elevation (US runs use the ~3 km HRRR blend). Drive times and road miles come from the OSRM router on OpenStreetMap roads. They don't include traffic or the last stretch on dirt roads, and the radius filters by road miles. Area list, coordinates and style tags come from Mountain Project, 8a.nu and climber forums; names link to each area's Mountain Project page. Coordinates are approximate; always check access, closures and raptor seasons before you go.</p>
 </div>
 
 <script>
-// name, area, lat, lon, elevation ft, rock, primary aspect, style
-const CRAGS = [
- ["Golden Cliffs","North Table Mtn",39.783,-105.208,6000,"basalt","S","sport"],
- ["Clear Creek Canyon","Golden",39.745,-105.255,6600,"gneiss","mixed","sport"],
- ["Morrison Boulders","Morrison",39.653,-105.190,6100,"sandstone","mixed","boulder"],
- ["Eldorado Canyon","Eldorado Springs",39.931,-105.290,6000,"sandstone","mixed","trad"],
- ["Flatirons","Boulder",39.987,-105.293,7000,"sandstone","E","trad"],
- ["Flagstaff Mountain","Boulder",40.001,-105.305,6900,"sandstone","mixed","boulder"],
- ["Boulder Canyon","Boulder",40.004,-105.400,6800,"granite","mixed","sport"],
- ["Castlewood Canyon","Franktown",39.334,-104.747,6200,"conglomerate","mixed","sport"],
- ["Staunton State Park","Pine",39.495,-105.392,9000,"granite","S","trad"],
- ["Mt. Blue Sky Boulders","Evergreen",39.588,-105.643,12800,"granite","mixed","boulder"],
- ["Guanella Pass","Georgetown",39.605,-105.710,11600,"granite","mixed","boulder"],
- ["Turkey Rocks","South Platte",39.135,-105.226,7900,"granite","S","trad"],
- ["Elevenmile Canyon","Lake George",38.950,-105.430,8000,"granite","mixed","sport"],
- ["Garden of the Gods","Colorado Springs",38.878,-104.880,6400,"sandstone","mixed","trad"],
- ["Shelf Road","Cañon City",38.635,-105.226,6300,"limestone","S","sport"],
- ["Carter Lake","Loveland",40.334,-105.212,5800,"granite","mixed","boulder"],
- ["Horsetooth Reservoir","Fort Collins",40.546,-105.156,5500,"sandstone","mixed","boulder"],
- ["Poudre Canyon","Bellvue",40.690,-105.300,6200,"granite","mixed","boulder"],
- ["420 Boulders","Upper Poudre Canyon",40.708,-105.752,7760,"granite","mixed","boulder"],
- ["St. Vrain Canyon","Lyons",40.160,-105.366,7690,"granite","mixed","boulder"],
- ["Elkland","Estes Park",40.386,-105.548,7870,"granite","mixed","boulder"],
- ["Lumpy Ridge","Estes Park",40.405,-105.515,8500,"granite","S","trad"],
- ["RMNP Alpine Boulders","Estes Park",40.311,-105.665,10000,"granite","mixed","boulder"],
- ["Vedauwoo","Laramie, WY",41.150,-105.370,8200,"granite","mixed","trad"]
-].map(([name,area,lat,lon,elev,rock,aspect,style])=>({name,area,lat,lon,elev,rock,aspect,style}));
+// One entry per crag cluster. styles lists what the area is known for, most prominent first.
+const CRAGS = /*CRAGDATA*/[{"name":"Fremont Canyon","area":"Alcova, WY","lat":42.4648,"lon":-106.828,"elev":5500,"rock":"granite","aspect":"mixed","styles":["trad","sport"],"access":"","mp":"https://mountainproject.com/area/105825913/fremont-canyon"},
+{"name":"Snowy Range","area":"Centennial, WY","lat":41.3904,"lon":-106.2823,"elev":10794,"rock":"quartzite","aspect":"mixed","styles":["trad","boulder","sport"],"access":"WY-130 closed in winter (about Nov–late May)","mp":"https://www.mountainproject.com/area/112372734"},
+{"name":"Vedauwoo","area":"Laramie, WY","lat":41.1848,"lon":-105.3782,"elev":8193,"rock":"granite","aspect":"mixed","styles":["trad","boulder"],"access":"Central Area day-use fee; FS roads gated in winter","mp":"https://www.mountainproject.com/v/vedauwoo/105744307"},
+{"name":"Red Feather Lakes","area":"Red Feather Lakes","lat":40.8015,"lon":-105.5901,"elev":8334,"rock":"granite","aspect":"mixed","styles":["boulder","trad","sport"],"access":"","mp":"https://mountainproject.com/area/109998833/red-feather-lakes"},
+{"name":"Seedhouse / Cougar","area":"Steamboat Springs","lat":40.756,"lon":-106.8403,"elev":8400,"rock":"gneiss","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://www.mountainproject.com/area/107213038/cougar"},
+{"name":"Greyrock","area":"Poudre Canyon","lat":40.7151,"lon":-105.2923,"elev":7348,"rock":"granite","aspect":"S","styles":["trad","sport"],"access":"","mp":"https://www.mountainproject.com/area/105745100/greyrock"},
+{"name":"West of Rustic Bouldering","area":"Upper Poudre Canyon","lat":40.7124,"lon":-105.7365,"elev":7730,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://www.mountainproject.com/area/109832351/west-of-rustic"},
+{"name":"420s","area":"Upper Poudre Canyon","lat":40.7085,"lon":-105.7521,"elev":7757,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"Kingpin boulder is on private property and closed; no camping","mp":"https://mountainproject.com/area/105745936/420s"},
+{"name":"Lower Poudre Canyon Bouldering","area":"Bellvue","lat":40.69,"lon":-105.3,"elev":6200,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://www.mountainproject.com/area/105744373/poudre-canyon"},
+{"name":"The Palace & Crystal Wall","area":"Poudre Canyon","lat":40.6897,"lon":-105.4503,"elev":6560,"rock":"granite","aspect":"mixed","styles":["sport"],"access":"","mp":"https://www.mountainproject.com/area/105873941/the-palace"},
+{"name":"The Narrows (Poudre)","area":"Poudre Canyon","lat":40.676,"lon":-105.4299,"elev":6322,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://www.mountainproject.com/area/109832222/the-narrows"},
+{"name":"Lory State Park (Arthur's Rock)","area":"Fort Collins","lat":40.5908,"lon":-105.184,"elev":5561,"rock":"granite","aspect":"mixed","styles":["boulder","trad","sport"],"access":"State park fee; raptor closures May 15–Jul 31","mp":"https://www.mountainproject.com/area/113079120/lory-state-park"},
+{"name":"Horsetooth Reservoir (Rotary Park)","area":"Fort Collins","lat":40.5781,"lon":-105.164,"elev":5437,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"Larimer County park entry fee","mp":"https://mountainproject.com/area/105744295/horsetooth-reservoir"},
+{"name":"The Monastery","area":"Drake","lat":40.4531,"lon":-105.3689,"elev":7795,"rock":"gneiss","aspect":"S","styles":["sport"],"access":"Storm Mountain Rd; check USFS post-fire closures","mp":"https://mountainproject.com/v/105744343"},
+{"name":"Combat Rock","area":"Drake","lat":40.442,"lon":-105.3443,"elev":6741,"rock":"granite","aspect":"S","styles":["sport","trad"],"access":"Storm Mountain Rd; check USFS post-fire closures","mp":"https://www.mountainproject.com/v/110422814"},
+{"name":"Big Thompson Canyon","area":"Loveland/Drake","lat":40.4215,"lon":-105.226,"elev":5318,"rock":"gneiss","aspect":"mixed","styles":["sport","trad"],"access":"Some Narrows crags private property; obey signs","mp":"https://www.mountainproject.com/v/106307308"},
+{"name":"Lumpy Ridge","area":"Estes Park","lat":40.4032,"lon":-105.5181,"elev":8452,"rock":"granite","aspect":"S","styles":["trad"],"access":"Seasonal raptor closures on some formations Feb 15–Jul 31","mp":"https://www.mountainproject.com/v/lumpy-ridge/105744228"},
+{"name":"Elkland","area":"Estes Park","lat":40.3861,"lon":-105.5483,"elev":7874,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"","mp":""},
+{"name":"Carter Lake","area":"Loveland","lat":40.3203,"lon":-105.2139,"elev":5960,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"Larimer County park entry fee","mp":"https://www.mountainproject.com/area/105744270/carter-lake"},
+{"name":"Jurassic Park (Lily Lake)","area":"Estes Park","lat":40.3126,"lon":-105.5408,"elev":9465,"rock":"granite","aspect":"W","styles":["sport","trad"],"access":"","mp":"https://www.mountainproject.com/v/105767388"},
+{"name":"Emerald Lake (RMNP)","area":"RMNP Bear Lake","lat":40.3095,"lon":-105.668,"elev":10110,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"RMNP timed-entry (Bear Lake Rd) in season","mp":"https://www.mountainproject.com/area/106286436/tyndall-gorge"},
+{"name":"The Crags (Twin Sisters)","area":"Estes Park","lat":40.3056,"lon":-105.5231,"elev":10032,"rock":"granite","aspect":"W","styles":["sport","trad"],"access":"RMNP timed-entry permit required in season","mp":"https://mountainproject.com/area/105744340/the-crags"},
+{"name":"Lower Chaos Canyon (RMNP)","area":"RMNP Bear Lake","lat":40.3048,"lon":-105.6607,"elev":10195,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"RMNP timed-entry (Bear Lake Rd) in season","mp":"https://www.mountainproject.com/area/106291581/lower-chaos-canyon"},
+{"name":"Upper Chaos Canyon (RMNP)","area":"RMNP Bear Lake","lat":40.3042,"lon":-105.6702,"elev":10697,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"RMNP timed-entry (Bear Lake Rd) in season","mp":"https://www.mountainproject.com/area/106286424/upper-chaos-canyon"},
+{"name":"Rabbit Ears Pass Domes","area":"Steamboat Springs","lat":40.2973,"lon":-106.6387,"elev":9460,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"Dirt forest road; snowbound in winter","mp":""},
+{"name":"Sky Pond Cirque (Petit Grepon)","area":"RMNP Loch Vale","lat":40.2793,"lon":-105.668,"elev":10900,"rock":"granite","aspect":"mixed","styles":["trad"],"access":"Cathedral Wall raptor closure Feb 15–Jul 31; timed entry","mp":"https://mountainproject.com/area/105745980/petit-grepon"},
+{"name":"Longs Peak – The Diamond","area":"RMNP","lat":40.2562,"lon":-105.6138,"elev":13500,"rock":"granite","aspect":"E","styles":["trad"],"access":"","mp":"https://www.mountainproject.com/area/105744826/the-diamond"},
+{"name":"Button Rock (Longmont Reservoir)","area":"Lyons","lat":40.2291,"lon":-105.3455,"elev":6031,"rock":"granite","aspect":"mixed","styles":["trad","sport"],"access":"City of Longmont preserve; no dogs","mp":"https://mountainproject.com/area/105744322/longmont-reservoir-area-aka-buttonrock"},
+{"name":"Wild Basin (RMNP)","area":"Allenspark","lat":40.2083,"lon":-105.5668,"elev":8300,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://mountainproject.com/area/110544801/wild-basin-bouldering"},
+{"name":"South St. Vrain Canyon","area":"Lyons","lat":40.1863,"lon":-105.3334,"elev":5916,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://mountainproject.com/area/105744264/south-fork-of-st-vrain-canyon"},
+{"name":"St. Vrain Canyon Bouldering","area":"Lyons","lat":40.16,"lon":-105.366,"elev":7690,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://mountainproject.com/area/107839313/st-vrain-canyons"},
+{"name":"Lefthand Canyon","area":"Boulder","lat":40.1007,"lon":-105.3441,"elev":6473,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://www.mountainproject.com/area/123184801/lefthand-canyon"},
+{"name":"Mount Sanitas","area":"Boulder","lat":40.027,"lon":-105.301,"elev":6105,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://www.mountainproject.com/area/105744361/mount-sanitas"},
+{"name":"Hurd Creek Crag","area":"Fraser / Granby","lat":40.0165,"lon":-105.761,"elev":9000,"rock":"gneiss","aspect":"W","styles":["sport"],"access":"Rough dirt road; private property on approach","mp":"https://mountainproject.com/area/107227066/hurd-creek-crag"},
+{"name":"Upper Dream Canyon","area":"Boulder","lat":40.0102,"lon":-105.4066,"elev":7500,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"Possible seasonal raptor closures; respect residents, tricky parking","mp":"https://www.mountainproject.com/area/105744234/upper-dream-canyon"},
+{"name":"Boulder Canyon","area":"Boulder","lat":40.0024,"lon":-105.4101,"elev":7126,"rock":"granite","aspect":"mixed","styles":["sport","trad","boulder"],"access":"Occasional seasonal raptor closures on some crags","mp":"https://www.mountainproject.com/area/105744222/boulder-canyon"},
+{"name":"Flagstaff Mountain","area":"Boulder","lat":40.0014,"lon":-105.296,"elev":6313,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://www.mountainproject.com/area/105744225/flagstaff"},
+{"name":"Flatirons","area":"Boulder","lat":39.9828,"lon":-105.289,"elev":6470,"rock":"sandstone","aspect":"E","styles":["trad"],"access":"Seasonal raptor/bat closures on some formations Feb 1–Jul 31","mp":"https://www.mountainproject.com/area/105797700/flatirons"},
+{"name":"Gross Reservoir","area":"Boulder","lat":39.9455,"lon":-105.3474,"elev":7235,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"Closed for dam expansion/restoration; check Denver Water","mp":"https://www.mountainproject.com/v/107730328"},
+{"name":"Eldorado Canyon","area":"Boulder","lat":39.9318,"lon":-105.2812,"elev":5806,"rock":"sandstone","aspect":"mixed","styles":["trad"],"access":"State park fee; peak-season vehicle reservations; some raptor closures","mp":"https://www.mountainproject.com/area/105744246/eldorado-canyon-state-park"},
+{"name":"Eldorado Mountain","area":"Boulder","lat":39.9204,"lon":-105.288,"elev":7572,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"Private property disputes; don't cross railroad tracks","mp":"https://www.mountainproject.com/area/105744255/eldorado-mountain"},
+{"name":"Golden Gate Canyon State Park","area":"Golden","lat":39.8369,"lon":-105.4245,"elev":9162,"rock":"granite","aspect":"mixed","styles":["trad","sport"],"access":"State park entry fee; new bolts need permit","mp":"https://www.mountainproject.com/area/105744472/golden-gate-canyon-sp"},
+{"name":"Dumont / Mill Creek","area":"Idaho Springs","lat":39.7878,"lon":-105.6332,"elev":9060,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://www.mountainproject.com/area/107316644/dumont-vicinity"},
+{"name":"Golden Cliffs (North Table Mtn)","area":"Golden","lat":39.7684,"lon":-105.218,"elev":6419,"rock":"basalt","aspect":"W","styles":["sport","trad"],"access":"Rim Rock Trail raptor closure Feb–Jul 31","mp":"https://mountainproject.com/area/105744249/north-table-mountaingolden-cliffs"},
+{"name":"Empire (Ra / Halidome)","area":"Empire","lat":39.7603,"lon":-105.683,"elev":8609,"rock":"granite","aspect":"mixed","styles":["sport","trad","boulder"],"access":"","mp":"https://www.mountainproject.com/area/105744285/empire"},
+{"name":"Clear Creek – Lower (Tunnel 1, Canal Zone)","area":"Golden","lat":39.7503,"lon":-105.2478,"elev":5837,"rock":"gneiss","aspect":"mixed","styles":["sport","trad"],"access":"Seasonal raptor closures west of Tunnel 1, Feb–Jul","mp":"https://www.mountainproject.com/area/106210042/the-canal-zone"},
+{"name":"Clear Creek – Upper (Tunnels 5–6, Catslab)","area":"Golden","lat":39.7428,"lon":-105.4043,"elev":7043,"rock":"gneiss","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://www.mountainproject.com/area/105744767/the-catslab"},
+{"name":"Clear Creek – Middle (Tunnels 2–3)","area":"Golden","lat":39.737,"lon":-105.3162,"elev":6359,"rock":"gneiss","aspect":"mixed","styles":["sport","trad","boulder"],"access":"Some crags (Highlands) under Feb–Jul raptor closures","mp":"https://www.mountainproject.com/area/105744850/the-new-river-wall"},
+{"name":"Lookout Mountain Road","area":"Golden","lat":39.7328,"lon":-105.2394,"elev":6500,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://www.mountainproject.com/area/112141459/lookout-mountain-road"},
+{"name":"Rifle Mountain Park","area":"Rifle","lat":39.7159,"lon":-107.6912,"elev":7085,"rock":"limestone","aspect":"mixed","styles":["sport"],"access":"City park; day-use fee or pass required","mp":"https://www.mountainproject.com/area/105744310"},
+{"name":"Wolcott Crags and Boulders","area":"Wolcott","lat":39.713,"lon":-106.6973,"elev":6905,"rock":"sandstone","aspect":"S","styles":["trad","sport","boulder"],"access":"Trestle and CMC areas off limits","mp":"https://www.mountainproject.com/v/106058324"},
+{"name":"Matthews-Winters Park","area":"Morrison","lat":39.6905,"lon":-105.2093,"elev":6446,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://mountainproject.com/area/106035304/matthews-winters-park"},
+{"name":"Main Elk Creek","area":"New Castle","lat":39.6776,"lon":-107.5693,"elev":6365,"rock":"limestone","aspect":"S","styles":["sport"],"access":"","mp":"https://www.mountainproject.com/area/109649590/main-elk-creek"},
+{"name":"Morrison Boulders","area":"Morrison","lat":39.6522,"lon":-105.1854,"elev":5800,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://www.mountainproject.com/area/105744288/morrison-boulders"},
+{"name":"Guanella Pass","area":"Georgetown","lat":39.6333,"lon":-105.7093,"elev":10451,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"Pass road closed in winter","mp":"https://mountainproject.com/area/106621712/guanella-pass"},
+{"name":"Area A (Chicago Lakes)","area":"Mt. Blue Sky","lat":39.6326,"lon":-105.6211,"elev":10929,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"Wilderness; free trailhead permit; no pad stashing","mp":"https://www.mountainproject.com/area/106497714/area-a"},
+{"name":"Three Sisters Park","area":"Evergreen","lat":39.6243,"lon":-105.3463,"elev":7531,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"Jeffco Open Space; check west-side forestry closure","mp":"https://www.mountainproject.com/v/106532664"},
+{"name":"Lincoln Lake","area":"Mt. Blue Sky","lat":39.6186,"lon":-105.603,"elev":11600,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"Mt. Blue Sky Rd timed reservation; summer only","mp":""},
+{"name":"Summit Lake / Area D","area":"Mt. Blue Sky","lat":39.603,"lon":-105.63,"elev":11800,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"Mt. Blue Sky Rd reservation; summer only","mp":""},
+{"name":"No Name Canyon","area":"Glenwood Canyon","lat":39.5712,"lon":-107.2918,"elev":6212,"rock":"granite","aspect":"mixed","styles":["trad"],"access":"","mp":"https://mountainproject.com/area/105746566/no-name-canyon"},
+{"name":"Tenmile Canyon","area":"Frisco","lat":39.5707,"lon":-106.1176,"elev":9500,"rock":"gneiss","aspect":"mixed","styles":["trad","sport"],"access":"","mp":"https://mountainproject.com/area/107938625/the-dome"},
+{"name":"Puoux","area":"Glenwood Springs","lat":39.5622,"lon":-107.304,"elev":5836,"rock":"limestone","aspect":"S","styles":["sport"],"access":"Private land; landowner waiver required","mp":"https://www.mountainproject.com/area/105745594/puoux"},
+{"name":"Staunton – Old Mill / Dines Cliff","area":"Pine","lat":39.5226,"lon":-105.3874,"elev":9119,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"State park fee and hours; seasonal falcon closures","mp":"https://www.mountainproject.com/v/107977192"},
+{"name":"Staunton – Staunton Rocks","area":"Pine","lat":39.5165,"lon":-105.3978,"elev":8500,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"State park fee and hours; seasonal falcon closures","mp":"https://mountainproject.com/area/107977810/staunton-rocks"},
+{"name":"Camp Hale / Homestake Road","area":"Leadville / Red Cliff","lat":39.4372,"lon":-106.3215,"elev":9000,"rock":"gneiss","aspect":"mixed","styles":["sport"],"access":"","mp":"https://www.mountainproject.com/area/107649306/camp-hale"},
+{"name":"Cathedral Spires (Cynical Pinnacle)","area":"South Platte","lat":39.413,"lon":-105.2673,"elev":7364,"rock":"granite","aspect":"mixed","styles":["trad","boulder"],"access":"Raptor closure Mar 1–Jul 31, sometimes into Aug","mp":"https://www.mountainproject.com/area/105797900/cathedral-spires-area"},
+{"name":"Lime Park (Lime Creek)","area":"Eagle / Basalt","lat":39.4073,"lon":-106.6554,"elev":9115,"rock":"limestone","aspect":"mixed","styles":["sport"],"access":"Long dirt road access; possible summer raptor closures","mp":"https://www.mountainproject.com/v/107191966"},
+{"name":"Buffalo Creek","area":"South Platte","lat":39.3784,"lon":-105.2603,"elev":7063,"rock":"granite","aspect":"mixed","styles":["trad","sport","boulder"],"access":"","mp":"https://www.mountainproject.com/area/105744291/buffalo-creek"},
+{"name":"Rampart Range Road","area":"Sedalia","lat":39.3775,"lon":-105.0935,"elev":7192,"rock":"granite","aspect":"mixed","styles":["boulder","sport","trad"],"access":"Rampart Range Rd seasonal winter closure","mp":"https://mountainproject.com/area/105797807/rampart-range-road"},
+{"name":"The Frying Pan","area":"Basalt","lat":39.3749,"lon":-106.8965,"elev":7548,"rock":"sandstone","aspect":"S","styles":["sport","trad"],"access":"","mp":"https://www.mountainproject.com/v/106304629"},
+{"name":"Wonderland (Miller Gulch)","area":"South Platte","lat":39.3651,"lon":-105.3786,"elev":8000,"rock":"granite","aspect":"mixed","styles":["sport","trad","boulder"],"access":"USFS parking permit required","mp":"https://mountainproject.com/area/123516270/wonderland"},
+{"name":"Castlewood Canyon","area":"Franktown","lat":39.3311,"lon":-104.7386,"elev":6612,"rock":"conglomerate","aspect":"mixed","styles":["sport","trad","boulder"],"access":"State park fee; raptor closures Mar–Jul on several walls","mp":"https://mountainproject.com/area/105744319/castlewood-canyon-sp"},
+{"name":"The Castle (Wellington Lake)","area":"Bailey","lat":39.3114,"lon":-105.3806,"elev":9632,"rock":"granite","aspect":"mixed","styles":["trad"],"access":"Private lake land; per-person day-use fee","mp":"https://www.mountainproject.com/area/105746272/the-castle"},
+{"name":"Jackson Creek","area":"Sedalia","lat":39.2914,"lon":-105.0559,"elev":8187,"rock":"granite","aspect":"mixed","styles":["trad"],"access":"Via Rampart Range Rd, closed in winter","mp":"https://mountainproject.com/area/105744424/jackson-creek"},
+{"name":"Hell's Gate / Hagerman Pass","area":"Basalt / Frying Pan","lat":39.2896,"lon":-106.5619,"elev":10193,"rock":"granite","aspect":"mixed","styles":["trad","sport"],"access":"Hagerman Pass dirt road; snowbound in winter","mp":"https://www.mountainproject.com/area/105744421/hells-gate-hagerman-pass"},
+{"name":"Tarryall","area":"Lake George","lat":39.2704,"lon":-105.6739,"elev":9000,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://www.mountainproject.com/area/113285554/tarryall"},
+{"name":"Devil's Head","area":"Sedalia","lat":39.2603,"lon":-105.1011,"elev":9646,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"Rampart Range Rd closed Dec–Apr; raptor closures Mar–Jul","mp":"https://www.mountainproject.com/area/105744261/devils-head"},
+{"name":"Deckers (Atlantis / Java Domes)","area":"Deckers","lat":39.2542,"lon":-105.2268,"elev":6400,"rock":"granite","aspect":"S","styles":["trad"],"access":"","mp":"https://www.mountainproject.com/area/105797804/deckers"},
+{"name":"Wigwam Creek (Lost Creek Wilderness)","area":"Deckers","lat":39.235,"lon":-105.355,"elev":8400,"rock":"granite","aspect":"mixed","styles":["trad"],"access":"Wilderness; no power drills; long approaches","mp":"https://www.mountainproject.com/area/105744382/wigwam-creeklost-creek-wilderness"},
+{"name":"Goose Creek / Sheep Rock","area":"Deckers","lat":39.1887,"lon":-105.335,"elev":8291,"rock":"granite","aspect":"mixed","styles":["trad"],"access":"","mp":"https://www.mountainproject.com/area/105797917/goose-creekmolly-gulch-campground"},
+{"name":"Big Rock Candy Mountain","area":"Deckers","lat":39.1314,"lon":-105.3223,"elev":8013,"rock":"granite","aspect":"mixed","styles":["trad"],"access":"South Platte river crossing required","mp":"https://www.mountainproject.com/v/105745618"},
+{"name":"Independence Pass – Upper Boulderfield","area":"Independence Pass","lat":39.1246,"lon":-106.6717,"elev":10167,"rock":"granite","aspect":"mixed","styles":["sport","boulder","trad"],"access":"Hwy 82 closed past winter gate ~Nov–late May","mp":"https://www.mountainproject.com/area/107617962/upper-boulderfield-area"},
+{"name":"Turkey Rocks","area":"South Platte","lat":39.1192,"lon":-105.2398,"elev":8240,"rock":"granite","aspect":"S","styles":["trad"],"access":"Access only via Turkey Rocks trailhead, not subdivision","mp":"https://www.mountainproject.com/area/105797943/turkey-rocks"},
+{"name":"Independence Pass – Grottos","area":"Aspen","lat":39.1191,"lon":-106.7025,"elev":9522,"rock":"granite","aspect":"mixed","styles":["boulder","trad","sport"],"access":"Hwy 82 closed past winter gate ~Nov–late May","mp":"https://www.mountainproject.com/area/106193949/grottos-day-use-area"},
+{"name":"Lincoln Creek","area":"Independence Pass","lat":39.1165,"lon":-106.6937,"elev":9613,"rock":"granite","aspect":"mixed","styles":["trad"],"access":"Hwy 82 closed past winter gate ~Nov–late May","mp":"https://www.mountainproject.com/area/105925612/lincoln-creek"},
+{"name":"Colorado National Monument","area":"Grand Junction","lat":39.1016,"lon":-108.7346,"elev":5793,"rock":"sandstone","aspect":"mixed","styles":["trad"],"access":"NPS entry fee; no climbing on wet sandstone","mp":"https://www.mountainproject.com/v/105744448"},
+{"name":"Mount Herman Boulders","area":"Monument","lat":39.0777,"lon":-104.9186,"elev":7733,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://www.mountainproject.com/area/109635039/mount-herman"},
+{"name":"Monitor Rock","area":"Independence Pass (east)","lat":39.0726,"lon":-106.4513,"elev":10191,"rock":"granite","aspect":"W","styles":["sport","trad"],"access":"Hwy 82 over pass closed ~Nov–late May","mp":"https://www.mountainproject.com/area/105745633/monitor-rock"},
+{"name":"Lunch Loop Bouldering","area":"Grand Junction","lat":39.0401,"lon":-108.6025,"elev":4800,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"Shared trails with mountain bikers","mp":"https://mountainproject.com/area/107111982/tabeguache-boulders"},
+{"name":"Grand Mesa – Land's End","area":"Grand Mesa","lat":39.0261,"lon":-108.1732,"elev":10000,"rock":"basalt","aspect":"mixed","styles":["trad","sport"],"access":"Land's End Road closed in winter","mp":"https://mountainproject.com/area/107685611/grand-mesa"},
+{"name":"Woodland Park Bouldering","area":"Woodland Park","lat":38.9939,"lon":-105.0588,"elev":8501,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://www.mountainproject.com/area/200603302/woodland-park"},
+{"name":"Nine Mile Hill Bouldering","area":"Unaweep Canyon","lat":38.9361,"lon":-108.4862,"elev":5183,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://mountainproject.com/area/121567471/nine-mile-bouldering"},
+{"name":"Elevenmile Canyon","area":"Lake George","lat":38.9344,"lon":-105.4075,"elev":8192,"rock":"granite","aspect":"mixed","styles":["trad","sport"],"access":"Day-use fee; seasonal raptor closures Jan–Jul","mp":"https://www.mountainproject.com/area/105744304/elevenmile-canyon"},
+{"name":"Ute Valley Park","area":"Colorado Springs","lat":38.9118,"lon":-104.857,"elev":6539,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://www.mountainproject.com/area/105792354/ute-valley-park"},
+{"name":"Skyland Boulders","area":"Crested Butte","lat":38.8996,"lon":-106.9684,"elev":9407,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"No parking in Skyland residential district","mp":"https://mountainproject.com/area/107163609/crested-butte"},
+{"name":"Bob's Rock & Turtle Rocks","area":"Buena Vista","lat":38.8841,"lon":-106.1498,"elev":8143,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"Part of Bob's Rock closed for nesting until July 15","mp":"https://www.mountainproject.com/area/105746480/bobs-rock"},
+{"name":"Garden of the Gods","area":"Colorado Springs","lat":38.8788,"lon":-104.8699,"elev":6378,"rock":"sandstone","aspect":"mixed","styles":["trad"],"access":"Free annual permit; no chalk; avoid after rain","mp":"https://www.mountainproject.com/area/105744301/garden-of-the-gods"},
+{"name":"Red Rock Canyon Open Space","area":"Colorado Springs","lat":38.8536,"lon":-104.8803,"elev":6600,"rock":"sandstone","aspect":"mixed","styles":["sport"],"access":"Free annual climbing permit; avoid after rain","mp":"https://www.mountainproject.com/area/105744457/red-rock-canyon-open-space"},
+{"name":"Buena Vista Bouldering","area":"Buena Vista","lat":38.8418,"lon":-106.1147,"elev":8150,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://www.mountainproject.com/area/120853595/east"},
+{"name":"Unaweep Canyon","area":"Unaweep Canyon","lat":38.8166,"lon":-108.6044,"elev":6811,"rock":"granite","aspect":"mixed","styles":["trad","sport"],"access":"Much private land; use BLM/WCCC/Access Fund parcels","mp":"https://mountainproject.com/area/106571734/main-canyon-unaweep-granite"},
+{"name":"North Cheyenne Cañon","area":"Colorado Springs","lat":38.7925,"lon":-104.8758,"elev":6526,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://www.mountainproject.com/area/105744346/north-cheyenne-canyon"},
+{"name":"Old Stage Road","area":"Colorado Springs","lat":38.7717,"lon":-104.8785,"elev":7312,"rock":"granite","aspect":"mixed","styles":["trad","sport"],"access":"","mp":"https://www.mountainproject.com/area/105744385/old-stage-road"},
+{"name":"Taylor Canyon","area":"Almont","lat":38.7265,"lon":-106.7694,"elev":8700,"rock":"granite","aspect":"mixed","styles":["trad","sport"],"access":"","mp":"https://mountainproject.com/area/106547081/coffin-crack-crag"},
+{"name":"Gateway (West End)","area":"Gateway","lat":38.7228,"lon":-108.9162,"elev":4992,"rock":"sandstone","aspect":"mixed","styles":["trad","sport"],"access":"","mp":"https://mountainproject.com/area/106571748/gateway-vicinity-aka-the-west-end"},
+{"name":"Escalante Canyon","area":"Delta","lat":38.6803,"lon":-108.3123,"elev":5291,"rock":"sandstone","aspect":"mixed","styles":["trad","boulder"],"access":"Cabin Wall and Island closed; ranch land, stay on roads","mp":"https://mountainproject.com/index.php/area/105788880/escalante-canyon"},
+{"name":"Shelf Road – The Bank / Cactus Cliff","area":"Cañon City","lat":38.6312,"lon":-105.2214,"elev":6721,"rock":"limestone","aspect":"S","styles":["sport"],"access":"","mp":"https://www.mountainproject.com/area/105745349/cactus-cliff"},
+{"name":"Shelf Road – Sand Gulch","area":"Cañon City","lat":38.6202,"lon":-105.2312,"elev":6500,"rock":"limestone","aspect":"mixed","styles":["sport"],"access":"","mp":"https://www.mountainproject.com/area/105744971/sand-gulch"},
+{"name":"Black Canyon of the Gunnison","area":"Montrose","lat":38.577,"lon":-107.7321,"elev":7000,"rock":"gneiss","aspect":"mixed","styles":["trad"],"access":"Free NPS climbing permit; North Rim road closed in winter","mp":"https://mountainproject.com/area/105744397/black-canyon-of-the-gunnison"},
+{"name":"Phantom Canyon","area":"Penrose","lat":38.5245,"lon":-105.127,"elev":6000,"rock":"gneiss","aspect":"S","styles":["sport"],"access":"","mp":"https://mountainproject.com/area/111774072/vatican"},
+{"name":"Four Mile Creek Bouldering","area":"Cañon City","lat":38.5235,"lon":-105.2175,"elev":5703,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"Avoid after rain; respect private property","mp":"https://mountainproject.com/area/123646293/four-mile-creek-bouldering"},
+{"name":"Dry Creek Crag","area":"Montrose","lat":38.498,"lon":-108.0588,"elev":6000,"rock":"sandstone","aspect":"W","styles":["sport","trad"],"access":"Rough road; high clearance recommended","mp":"https://mountainproject.com/area/112787268/dry-creek-crag"},
+{"name":"Hartman Rocks","area":"Gunnison","lat":38.4971,"lon":-106.9476,"elev":8165,"rock":"granite","aspect":"mixed","styles":["sport","boulder"],"access":"","mp":"https://www.mountainproject.com/v/105780648"},
+{"name":"Royal Gorge","area":"Cañon City","lat":38.462,"lon":-105.322,"elev":5900,"rock":"granite","aspect":"S","styles":["trad"],"access":"Climbing banned without Royal Gorge Co. permission","mp":"https://mountainproject.com/area/105744433/royal-gorge"},
+{"name":"Tanner Dome (Wet Mountains)","area":"Westcliffe","lat":38.3084,"lon":-105.2601,"elev":7975,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://www.mountainproject.com/v/tanner-dome/105746629"},
+{"name":"Saguache Boulders","area":"Saguache","lat":38.1184,"lon":-106.0499,"elev":7900,"rock":"granite","aspect":"mixed","styles":["boulder"],"access":"","mp":""},
+{"name":"Ouray Sport Crags","area":"Ouray","lat":38.0174,"lon":-107.6752,"elev":7700,"rock":"quartzite","aspect":"mixed","styles":["sport","trad"],"access":"Gorge used as ice park ~mid-Dec to early Apr","mp":"https://mountainproject.com/area/105747026/uncompahgre-gorge-aka-ouray-ice-park"},
+{"name":"God's Crag","area":"Lake City","lat":38.0123,"lon":-107.4462,"elev":10000,"rock":"tuff","aspect":"mixed","styles":["sport"],"access":"","mp":"https://www.mountainproject.com/area/106053965/gods-crag"},
+{"name":"Bridal Veil / Pipeline Wall","area":"Telluride","lat":37.9235,"lon":-107.7664,"elev":9000,"rock":"conglomerate","aspect":"S","styles":["sport"],"access":"Access issues; stay on road and trail","mp":"https://www.mountainproject.com/v/105974368"},
+{"name":"Ophir Wall","area":"Ophir","lat":37.8618,"lon":-107.8683,"elev":9447,"rock":"rhyolite","aspect":"S","styles":["trad","sport"],"access":"Respect private land on approach","mp":"https://www.mountainproject.com/area/105744454/ophir-wall"},
+{"name":"Rock Garden","area":"Del Norte","lat":37.85,"lon":-106.2923,"elev":8000,"rock":"tuff","aspect":"mixed","styles":["sport","boulder"],"access":"41G lot closed; park at Penitente or BLM lot","mp":""},
+{"name":"Penitente Canyon","area":"Del Norte","lat":37.8429,"lon":-106.2847,"elev":7969,"rock":"tuff","aspect":"mixed","styles":["sport"],"access":"BLM fee camping; mid-Oct festival reserves campsites","mp":"https://www.mountainproject.com/area/105744316/penitente-canyon"},
+{"name":"Witches Canyon (Witchcraft Wall)","area":"Del Norte","lat":37.8396,"lon":-106.2946,"elev":8000,"rock":"tuff","aspect":"mixed","styles":["sport","boulder"],"access":"","mp":""},
+{"name":"Silverton","area":"Silverton","lat":37.8065,"lon":-107.6701,"elev":9300,"rock":"tuff","aspect":"mixed","styles":["trad","sport"],"access":"","mp":"https://www.mountainproject.com/area/106444659/silverton-area"},
+{"name":"Cascade Canyon","area":"Purgatory","lat":37.6577,"lon":-107.8096,"elev":8733,"rock":"limestone","aspect":"mixed","styles":["sport"],"access":"","mp":"https://www.mountainproject.com/area/105827468/cascade-canyon"},
+{"name":"Rattler Cliff","area":"Del Norte","lat":37.5971,"lon":-106.3159,"elev":8312,"rock":"rhyolite","aspect":"mixed","styles":["sport","trad"],"access":"Rough dirt road; some clearance needed","mp":"https://mountainproject.com/area/121755105/rattler-cliff"},
+{"name":"Wolf Creek Pass Bouldering","area":"South Fork","lat":37.5672,"lon":-106.7629,"elev":9000,"rock":"tuff","aspect":"mixed","styles":["boulder"],"access":"","mp":""},
+{"name":"Golf Wall","area":"Durango","lat":37.5172,"lon":-107.8158,"elev":8055,"rock":"limestone","aspect":"mixed","styles":["sport"],"access":"Park at paved west-side pulloff, not the old dirt lot","mp":"https://www.mountainproject.com/area/105825711/golf-wall"},
+{"name":"Vallecito Crags","area":"Vallecito Lake","lat":37.4882,"lon":-107.5269,"elev":9500,"rock":"quartzite","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://www.mountainproject.com/area/106271543/vallecito-crags"},
+{"name":"Lemon Reservoir","area":"Durango","lat":37.465,"lon":-107.678,"elev":8400,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"Road gated at reservoir; snowbound in winter","mp":"https://www.mountainproject.com/area/106234416/lemon-reservoir"},
+{"name":"Pine River","area":"Vallecito Lake","lat":37.447,"lon":-107.5053,"elev":7931,"rock":"quartzite","aspect":"mixed","styles":["trad"],"access":"","mp":"https://www.mountainproject.com/area/107008417/pine-river-area"},
+{"name":"Piedra River","area":"Pagosa Springs","lat":37.4305,"lon":-107.1938,"elev":7500,"rock":"granite","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://mountainproject.com/area/106186599/piedra-river"},
+{"name":"Hermosa Cliffs","area":"Durango","lat":37.4289,"lon":-107.8369,"elev":7673,"rock":"sandstone","aspect":"mixed","styles":["trad","sport"],"access":"","mp":"https://www.mountainproject.com/area/106042020/hermosa"},
+{"name":"New Dark Ages Crag","area":"Pagosa Springs","lat":37.3814,"lon":-106.8611,"elev":7897,"rock":"basalt","aspect":"mixed","styles":["sport"],"access":"East Fork Road usually closed Dec–Apr/May","mp":"https://www.mountainproject.com/area/120173515/new-dark-ages-crag"},
+{"name":"Area 071","area":"Durango","lat":37.3443,"lon":-107.8024,"elev":8818,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"","mp":"https://www.mountainproject.com/area/108228655/area-071"},
+{"name":"New Lightner","area":"Durango","lat":37.342,"lon":-107.9808,"elev":7847,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"Spring wildlife closure; 4-mile approach; avoid private land","mp":"https://www.mountainproject.com/area/122481797/new-lightner"},
+{"name":"Turtle Lake","area":"Durango","lat":37.3324,"lon":-107.8829,"elev":7100,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"Next to Ancestral Puebloan sites; tread lightly","mp":"https://www.mountainproject.com/area/105830792/turtle-lake"},
+{"name":"East Animas","area":"Durango","lat":37.3183,"lon":-107.836,"elev":6593,"rock":"sandstone","aspect":"W","styles":["trad","sport"],"access":"Surrounded by private land; use signed lot and trail","mp":"https://www.mountainproject.com/area/105819668/east-animas"},
+{"name":"Animas City Mountain","area":"Durango","lat":37.3122,"lon":-107.8674,"elev":7544,"rock":"sandstone","aspect":"N","styles":["trad"],"access":"Possible winter wildlife closure Dec 1–Apr 15; verify","mp":"https://www.mountainproject.com/area/107232328/animas-mountain"},
+{"name":"X Rock","area":"Durango","lat":37.3111,"lon":-107.8612,"elev":6812,"rock":"sandstone","aspect":"mixed","styles":["trad","sport"],"access":"","mp":"https://www.mountainproject.com/area/105820409/x-rock"},
+{"name":"Sailing Hawks","area":"Durango","lat":37.3097,"lon":-107.8849,"elev":6720,"rock":"sandstone","aspect":"mixed","styles":["boulder"],"access":"No camping","mp":"https://www.mountainproject.com/area/106393769/sailing-hawks"},
+{"name":"Dry Fork Cliff","area":"Durango","lat":37.3038,"lon":-107.9469,"elev":7818,"rock":"sandstone","aspect":"E","styles":["trad"],"access":"Wildlife closure Dec 1–Apr 15 (Perins Peak SWA)","mp":"https://www.mountainproject.com/area/122075684/dry-fork-cliff"},
+{"name":"Sugarite Canyon","area":"Raton, NM","lat":36.9798,"lon":-104.3937,"elev":8082,"rock":"basalt","aspect":"S","styles":["trad"],"access":"State park day-use fee","mp":"https://mountainproject.com/area/106186303/sugarite-canyon-state-park"},
+{"name":"Questa Dome","area":"Questa, NM","lat":36.7948,"lon":-105.5345,"elev":9947,"rock":"granite","aspect":"S","styles":["trad"],"access":"Raptor nesting mid-Feb–May; high clearance last half mile","mp":"https://www.mountainproject.com/area/105979184"},
+{"name":"Tres Piedras","area":"Tres Piedras, NM","lat":36.6608,"lon":-105.9829,"elev":8369,"rock":"gneiss","aspect":"mixed","styles":["trad","sport","boulder"],"access":"Some rocks on private land; seasonal raptor nesting","mp":"https://www.mountainproject.com/v/tres-piedras/105993270"},
+{"name":"John Dunn Bridge","area":"Taos, NM","lat":36.5336,"lon":-105.7074,"elev":7000,"rock":"basalt","aspect":"mixed","styles":["sport","trad"],"access":"","mp":"https://mountainproject.com/area/106076750/john-dunn-bridge-area"},
+{"name":"El Rito","area":"El Rito, NM","lat":36.3928,"lon":-106.1956,"elev":7634,"rock":"conglomerate","aspect":"mixed","styles":["sport","trad"],"access":"Raptor nesting mid-Feb–late May; trad area needs high clearance","mp":"https://www.mountainproject.com/area/105788273/el-rito"},
+{"name":"Dead Cholla Wall (Rio Grande Gorge)","area":"Taos, NM","lat":36.3546,"lon":-105.7336,"elev":6659,"rock":"basalt","aspect":"E","styles":["sport","trad"],"access":"BLM Orilla Verde; NM 567 unpaved, may close in winter","mp":"https://www.mountainproject.com/area/105868969/dead-cholla-wall"},
+{"name":"Comales Canyon","area":"Taos, NM","lat":36.1596,"lon":-105.5853,"elev":8080,"rock":"quartzite","aspect":"mixed","styles":["sport","trad"],"access":"Seasonal raptor nesting","mp":"https://mountainproject.com/area/106295872/comales-canyon"}]/*END*/;
 
-// How much longer a rock type needs to shed rain, relative to granite.
-const DRY = {sandstone:2.2, conglomerate:1.6, limestone:1.0, granite:1.0, gneiss:1.0, basalt:0.9};
-const PAST = 2, DAYS = 5;
+// How much longer a rock type takes to shed rain, relative to granite.
+const DRY = {sandstone:3.0, conglomerate:2.0, tuff:2.0, limestone:1.0, dolomite:1.0, granite:1.0, gneiss:1.0, schist:1.0, quartzite:0.9, rhyolite:1.0, basalt:0.9};
+const FRAGILE = new Set(["sandstone","tuff","conglomerate"]);
+// Friction sweet spot (°F, "feels on the rock") by discipline: boulderers want it colder than roped climbers.
+const TEMP = {boulder:{lo:26,ok0:40,ok1:55,hi:78}, sport:{lo:34,ok0:50,ok1:65,hi:86}, trad:{lo:34,ok0:50,ok1:65,hi:86}};
+const STYLE_NAME = {all:"climbing", boulder:"bouldering", sport:"sport climbing", trad:"trad climbing"};
+const SUN_GAIN = {S:12, E:6, W:6, mixed:5, N:1};   // °F a wall gains in full sun
+const PAST = 2, DAYS = 5, WINDOW = 3;
 
 const $ = id => document.getElementById(id);
-const state = {origin:{lat:39.7392,lon:-104.9903,label:"Denver"}, radius:50, day:0, wx:null, live:false, drive:null, driveOk:null};
+const state = {origin:{lat:39.7392,lon:-104.9903,label:"Denver"}, radius:50, style:"all", day:0, wx:null, live:false, drive:null, driveOk:null};
 const driveCache = new Map();
+try{ const r = Number(localStorage.getItem("sendcast.radius")); if(r>=10&&r<=250) state.radius=r; const st=localStorage.getItem("sendcast.style"); if(STYLE_NAME[st]) state.style=st; }catch(e){}
+
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const lerp=(x,x0,x1,y0,y1)=>y0+(y1-y0)*clamp((x-x0)/(x1-x0));
+function miles(a,b){
+  const R=3958.8, t=Math.PI/180, dLat=(b.lat-a.lat)*t, dLon=(b.lon-a.lon)*t;
+  const h=Math.sin(dLat/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function chunks(a,n){const out=[];for(let i=0;i<a.length;i+=n)out.push(a.slice(i,i+n));return out}
+
+// ---------- drive times ----------
 // Drive time and road distance from the origin to every crag, from the free OSRM router (OpenStreetMap roads, no live traffic).
 async function updateDrive(){
   const o=state.origin, key=o.lat.toFixed(3)+","+o.lon.toFixed(3);
   state.drive=driveCache.get(key)||null; render();
   if(state.drive) return;
   try{
-    const pts=[o,...CRAGS].map(p=>p.lon.toFixed(4)+","+p.lat.toFixed(4)).join(";");
-    const res=await fetch(`https://router.project-osrm.org/table/v1/driving/${pts}?sources=0&annotations=duration,distance`,{signal:AbortSignal.timeout(9000)});
-    const j=await res.json(); if(j.code!=="Ok") throw new Error(j.code);
-    const rows=j.durations[0].slice(1).map((sec,k)=>sec==null?null:{min:sec/60, mi:j.distances[0][k+1]/1609.34});
+    const parts=await Promise.all(chunks(CRAGS,80).map(async list=>{
+      const pts=[o,...list].map(p=>p.lon.toFixed(4)+","+p.lat.toFixed(4)).join(";");
+      const res=await fetch(`https://router.project-osrm.org/table/v1/driving/${pts}?sources=0&annotations=duration,distance`,{signal:AbortSignal.timeout(12000)});
+      const j=await res.json(); if(j.code!=="Ok") throw new Error(j.code);
+      return j.durations[0].slice(1).map((sec,k)=>sec==null?null:{min:sec/60, mi:j.distances[0][k+1]/1609.34});
+    }));
+    const rows=parts.flat();
     driveCache.set(key,rows);
     if(state.origin===o){state.drive=rows; state.driveOk=true;}
   }catch(e){ state.driveOk=false; }
@@ -165,127 +342,199 @@ function updateNotice(){
   const msgs=[];
   if(state.live===false && state.wxTried) msgs.push("Showing example conditions because this view can't reach the live forecast service.");
   if(state.driveOk===false) msgs.push("Drive times are unavailable here, so distances are straight-line.");
-  if(msgs.length) msgs.push("Open the standalone file in your browser for live forecasts and drive times.");
+  if(msgs.length) msgs.push("Open the hosted site or the standalone file for live forecasts and drive times.");
   $("notice").hidden=!msgs.length; $("notice").textContent=msgs.join(" ");
 }
-try{ const r = Number(localStorage.getItem("sendcast.radius")); if(r>=10&&r<=250) state.radius=r; }catch(e){}
 
-function miles(a,b){
-  const R=3958.8, t=Math.PI/180, dLat=(b.lat-a.lat)*t, dLon=(b.lon-a.lon)*t;
-  const h=Math.sin(dLat/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLon/2)**2;
-  return 2*R*Math.asin(Math.sqrt(h));
+// ---------- hourly scoring ----------
+// Rock wetness: rain adds water; sun, wind, warmth and dry air take it away, slower on porous rock.
+function wetness(c,w){
+  const out=new Array(w.t.length); let W=0;
+  for(let h=0;h<w.t.length;h++){
+    W += (w.p[h]||0);
+    const sun = clamp((w.sw[h]||0)/750);
+    const rate = 0.007*(1+2*sun)*(1+(w.ws[h]||0)/12)*(w.rh[h]>85?0.35:w.rh[h]>65?0.7:1)*(w.t[h]>32?1:0.3)/(DRY[c.rock]||1);
+    W = Math.max(0, W-rate);
+    out[h]=W;
+  }
+  return out;
 }
-const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
-const lerp=(x,x0,x1,y0,y1)=>y0+(y1-y0)*clamp((x-x0)/(x1-x0));
-
-// ---------- scoring ----------
-function score(c, w, i){
-  const hi=w.tmax[i], lo=w.tmin[i], rain=w.pr[i], wind=w.wind[i], rh=w.rh[i], cloud=w.cloud[i];
-  let feel = 0.7*hi + 0.3*lo;                         // climbing-hours temperature
-  const sun = 1 - cloud/100;
-  if (c.aspect==="S") feel += 9*sun;                  // sun-baked walls run warmer
-  if (c.aspect==="E") feel += 3*sun;
-  const tS = feel<45 ? lerp(feel,22,45,0,1) : feel<=62 ? 1 : lerp(feel,62,88,1,0);
-  const hS = lerp(rh,35,85,1,0.15);
-  const wS = wind<=10 ? 1 : lerp(wind,10,32,1,0.1);
-  const skyS = feel<45 ? 0.5+0.5*sun : 1-0.3*Math.max(0,sun-0.6); // sun helps when cold, hurts a bit when hot
-  const base = 0.45*tS + 0.2*hS + 0.2*wS + 0.15*skyS;
-  const rainToday = rain<=0.01 ? 1 : lerp(rain,0.01,0.3,0.6,0);
-  const prev = (w.pr[i-1]||0) + 0.5*(w.pr[i-2]||0);
-  const wet = clamp(prev*(DRY[c.rock]||1)*3.5);
-  const s = Math.round(100*base*rainToday*(1-0.85*wet));
+function hourScore(c,w,h,wet,T){
+  const sun = w.day[h] ? clamp((w.sw[h]||0)/750) : 0;
+  let feel = w.t[h] + sun*(SUN_GAIN[c.aspect]??5);
+  if (w.ws[h]>8) feel -= (w.ws[h]-8)*0.35;               // wind chill on the rock and your fingers
+  const tS = feel<T.ok0 ? lerp(feel,T.lo,T.ok0,0,1) : feel<=T.ok1 ? 1 : lerp(feel,T.ok1,T.hi,1,0);
+  const hS = lerp(w.rh[h],30,90,1,0.3);
+  let wS = w.ws[h]<=8 ? 1 : lerp(w.ws[h],8,30,1,0.1);
+  if ((w.wg[h]||0)>35) wS*=0.75;
+  // Multiplicative: one bad factor drags the hour down, like it does at the crag.
+  const base = Math.pow(tS,0.8) * (0.7+0.3*hS) * (0.55+0.45*wS);
+  const rainNow = (w.p[h]||0)>0.01 ? 0.05 : 1;
+  const prob = lerp(w.pp[h]??0, 40, 90, 1, 0.55);
+  const wetM = 1 - 0.92*clamp(wet[h]/0.08);
+  return {s:Math.round(100*clamp(base*rainNow*prob*wetM)), feel, wet:wet[h]};
+}
+// Score every hour of a crag for one style, cached.
+const hourCache = new Map();
+function hoursFor(c,j,style){
+  const key=j+"|"+(style||c.styles[0]); if(hourCache.has(key)) return hourCache.get(key);
+  const w=state.wx.byCrag[j], T=TEMP[style]||TEMP[c.styles[0]]||TEMP.sport, wet=wetness(c,w);
+  const hs=w.t.map((_,h)=>hourScore(c,w,h,wet,T));
+  hourCache.set(key,hs); return hs;
+}
+// Day score = best WINDOW-hour run of daylight hours.
+function dayResult(c,j,style,d){
+  const w=state.wx.byCrag[j], hs=hoursFor(c,j,style), T=TEMP[style]||TEMP[c.styles[0]]||TEMP.sport;
+  const h0=(PAST+d)*24, light=[];
+  for(let h=h0;h<h0+24;h++) if(w.day[h]) light.push(h);
+  let best=-1, at=light[0]??h0+10;
+  for(let k=0;k+WINDOW<=light.length;k++){
+    const m=(hs[light[k]].s+hs[light[k+1]].s+hs[light[k+2]].s)/WINDOW;
+    if(m>best){best=m; at=light[k];}
+  }
+  const win=[at,at+1,at+2];
+  const avg=f=>win.reduce((a,h)=>a+f(h),0)/WINDOW;
+  const feel=avg(h=>hs[h].feel), rain48=w.p.slice(Math.max(0,at-48),at).reduce((a,b)=>a+(b||0),0);
+  const rainDay=w.p.slice(h0,h0+24).reduce((a,b)=>a+(b||0),0);
   const notes=[];
-  if (rain>0.01) notes.push(`${rain.toFixed(2)}" of rain forecast`);
-  if (wet>0.25) notes.push(c.rock==="sandstone" ? "sandstone still drying from recent rain; wet sandstone breaks, so give it 24–48 h" : `rock may be damp after ${prev.toFixed(2)}" in the last two days`);
-  if (feel<38) notes.push("cold; bring belay puffy" + (c.aspect==="S"?"":" and look for sun-facing lines"));
-  else if (feel>72) notes.push("warm; aim for shade or early morning");
-  else if (tS>=0.95) notes.push("friction-range temps");
-  if (wind>20) notes.push(`gusty, ${Math.round(wind)} mph max`);
-  if (rh<35 && tS>0.8 && rain<=0.01) notes.push("crisp and dry");
-  return {s:clamp(s,0,100), feel, notes};
+  if (hs[at].wet>0.03) notes.push(FRAGILE.has(c.rock) ? `${c.rock} likely still wet; it breaks when wet, so give it 24–48 h after rain` : "rock may still be damp from recent rain");
+  if (rainDay>0.02) notes.push(`${rainDay.toFixed(2)}" of rain or snowmelt forecast today`);
+  if (feel<T.ok0-8) notes.push("cold; bring a puffy" + (c.aspect==="S"?"":" and look for sun-facing lines"));
+  else if (feel>T.ok1+6) notes.push("warm; aim for shade or early morning");
+  else if (feel>=T.ok0 && feel<=T.ok1) notes.push("friction-range temps");
+  const gust=Math.max(...win.map(h=>w.wg[h]||0));
+  if (gust>30) notes.push(`gusts to ${Math.round(gust)} mph`);
+  return {s:Math.round(Math.max(0,best)), at, win, h0, light, rain48, notes,
+    temp:avg(h=>w.t[h]), ws:avg(h=>w.ws[h]), rh:avg(h=>w.rh[h])};
 }
 const rating = s => s>=80?["prime","Prime"]:s>=62?["good","Good"]:s>=40?["fair","Fair"]:["poor","Poor"];
 
 // ---------- data ----------
+const HOURLY="temperature_2m,relative_humidity_2m,precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m,shortwave_radiation,is_day";
 async function loadLive(){
+  const parts = await Promise.all(chunks(CRAGS,40).map(loadChunk));
+  return {times:parts[0].times, byCrag:parts.flatMap(p=>p.byCrag)};
+}
+async function loadChunk(list){
   const q = new URLSearchParams({
-    latitude:CRAGS.map(c=>c.lat).join(","), longitude:CRAGS.map(c=>c.lon).join(","),
-    elevation:CRAGS.map(c=>Math.round(c.elev*0.3048)).join(","),
-    daily:"temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,cloud_cover_mean",
-    temperature_unit:"fahrenheit", wind_speed_unit:"mph", precipitation_unit:"inch",
+    latitude:list.map(c=>c.lat).join(","), longitude:list.map(c=>c.lon).join(","),
+    elevation:list.map(c=>Math.round(c.elev*0.3048)).join(","),
+    hourly:HOURLY, temperature_unit:"fahrenheit", wind_speed_unit:"mph", precipitation_unit:"inch",
     timezone:"America/Denver", past_days:PAST, forecast_days:DAYS
   });
-  const res = await fetch("https://api.open-meteo.com/v1/forecast?"+q, {signal:AbortSignal.timeout(9000)});
+  const res = await fetch("https://api.open-meteo.com/v1/forecast?"+q, {signal:AbortSignal.timeout(15000)});
   if(!res.ok) throw new Error("HTTP "+res.status);
-  const arr = await res.json();
-  return {dates:arr[0].daily.time, byCrag:arr.map(o=>({tmax:o.daily.temperature_2m_max,tmin:o.daily.temperature_2m_min,pr:o.daily.precipitation_sum,wind:o.daily.wind_speed_10m_max,rh:o.daily.relative_humidity_2m_mean,cloud:o.daily.cloud_cover_mean}))};
+  let arr = await res.json(); if(!Array.isArray(arr)) arr=[arr];
+  return {times:arr[0].hourly.time, byCrag:arr.map(o=>{const H=o.hourly; return {
+    t:H.temperature_2m, rh:H.relative_humidity_2m, p:H.precipitation, pp:H.precipitation_probability,
+    ws:H.wind_speed_10m, wg:H.wind_gusts_10m, sw:H.shortwave_radiation, day:H.is_day};})};
 }
-
 // Example conditions for views that can't reach the forecast service. Deterministic, elevation-aware, clearly labelled.
 function sampleData(){
-  const start=new Date(); start.setDate(start.getDate()-PAST);
-  const dates=[...Array(PAST+DAYS)].map((_,k)=>{const d=new Date(start);d.setDate(d.getDate()+k);return d.toISOString().slice(0,10)});
-  const storm=[0,0.25,0,0,0.05,0,0], cloudy=[30,80,40,15,55,20,35], windy=[9,14,8,7,18,11,9], warm=[0,-6,-2,3,-4,1,4];
+  const start=new Date(); start.setHours(0,0,0,0); start.setDate(start.getDate()-PAST);
+  const N=(PAST+DAYS)*24, times=[...Array(N)].map((_,h)=>{const d=new Date(start.getTime()+h*3600e3);
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+"T"+String(d.getHours()).padStart(2,"0")+":00";});
+  const warm=[0,-6,-2,3,-4,1,4], cloudy=[.3,.8,.4,.15,.55,.2,.35], windy=[9,14,8,7,18,11,9];
   const byCrag=CRAGS.map((c,j)=>{
-    const lapse=(c.elev-5300)/1000*3.6, jit=k=>((j*7+k*13)%5)-2;
-    return {tmax:dates.map((_,k)=>Math.round(66+warm[k]-lapse+jit(k))), tmin:dates.map((_,k)=>Math.round(40+warm[k]-lapse*0.8+jit(k))),
-      pr:dates.map((_,k)=>+(storm[k]*(c.elev>8000?1.4:c.lat>40.3?1.1:j%3?0.6:1)).toFixed(2)),
-      wind:dates.map((_,k)=>Math.round(windy[k]*(c.elev>10000?2:1)+jit(k))), rh:dates.map((_,k)=>40+cloudy[k]/3+jit(k)*2), cloud:dates.map((_,k)=>cloudy[k])};
+    const lapse=(c.elev-5300)/1000*3.6, jit=k=>((j*7+k*13)%5)-2, wetter=c.elev>8000?1.4:1;
+    const o={t:[],rh:[],p:[],pp:[],ws:[],wg:[],sw:[],day:[]};
+    for(let h=0;h<N;h++){
+      const d=Math.floor(h/24), hr=h%24, daylight=hr>=7&&hr<=17;
+      const diurnal=Math.cos((hr-15)/24*2*Math.PI);              // peak 3 pm
+      const hi=64+warm[d]-lapse+jit(d), lo=38+warm[d]-lapse*0.8+jit(d);
+      o.t.push(+((hi+lo)/2+(hi-lo)/2*diurnal).toFixed(1));
+      const storm=(d===1&&hr>=12&&hr<=17)||(d===4&&hr>=14&&hr<=15);
+      o.p.push(storm?+(0.05*wetter*(j%3?0.7:1)).toFixed(2):0);
+      o.pp.push(storm?80:Math.round(cloudy[d]*40));
+      o.rh.push(Math.round(clamp(30+cloudy[d]*30-diurnal*15+(storm?35:0)+jit(d)*2,10,100)));
+      const wsp=windy[d]*(c.elev>10000?1.8:1)*(0.7+0.5*clamp(diurnal+0.3));
+      o.ws.push(Math.round(wsp)); o.wg.push(Math.round(wsp*1.6));
+      o.sw.push(daylight?Math.round(800*Math.sin((hr-6)/12*Math.PI)*(1-cloudy[d]*0.8)*(storm?0.3:1)):0);
+      o.day.push(hr>=7&&hr<=17?1:0);
+    }
+    return o;
   });
-  return {dates,byCrag};
+  return {times,byCrag};
 }
 
 // ---------- render ----------
-function dayLabel(iso,k){
+function dayLabel(k){
   if(k===0) return "Today"; if(k===1) return "Tomorrow";
+  const iso=state.wx.times[(PAST+k)*24].slice(0,10);
   return new Date(iso+"T12:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
 }
+function hourLabel(h){const hr=Number(state.wx.times[h].slice(11,13)); return (hr%12||12)+(hr<12?"a":"p")}
 function renderDays(){
   $("days").replaceChildren(...[...Array(DAYS)].map((_,k)=>{
     const b=document.createElement("button"); b.type="button"; b.id="day"+k;
-    b.textContent=dayLabel(state.wx.dates[PAST+k],k); b.setAttribute("aria-pressed",String(k===state.day));
+    b.textContent=dayLabel(k); b.setAttribute("aria-pressed",String(k===state.day));
     b.onclick=()=>{state.day=k; renderDays(); render();}; return b;
   }));
 }
+function strip(c,j,style,r){
+  const w=state.wx.byCrag[j], hs=hoursFor(c,j,style);
+  const first=Math.max(r.h0,(r.light[0]??r.h0+7)-1), last=Math.min(r.h0+23,(r.light[r.light.length-1]??r.h0+17)+1);
+  let cells="";
+  for(let h=first;h<=last;h++){
+    const sc=hs[h].s, [k]=rating(sc), p=w.p[h]||0;
+    cells+=`<div class="cell r-${k}${r.win.includes(h)?" win":""}" title="${hourLabel(h)}: score ${sc}, ${Math.round(w.t[h])}°F, ${Math.round(w.rh[h])}% humidity, wind ${Math.round(w.ws[h])} gusting ${Math.round(w.wg[h]||0)} mph${p>0?`, ${p.toFixed(2)}&quot; precip`:""}${(w.pp[h]??0)>0?`, ${w.pp[h]}% chance`:""}">
+      <span class="h">${hourLabel(h)}</span><span class="bar" style="height:${Math.max(3,sc*0.46)}px"></span>
+      <span class="sc">${sc}</span><span class="wx">${Math.round(w.t[h])}°</span>
+      <span class="${p>0.01?"rn":"wx"}">${p>0.01?p.toFixed(2)+'"':Math.round(w.ws[h])+"mph"}</span></div>`;
+  }
+  return `<details class="hours" id="hrs-${j}"${openRows.has(j)?" open":""}><summary>Hourly · best ${hourLabel(r.win[0])}–${hourLabel(r.win[2]+1)}</summary>
+    <div class="strip"><div class="strip-in">${cells}</div></div>
+    <div class="legend">Bar and number: hourly score. Below: temperature, then wind (or rain in inches). Outlined hours are the best window.</div></details>`;
+}
+const openRows=new Set();
 function render(){
   if(!state.wx) return;
-  const i=PAST+state.day;
-  const dr=state.drive;
+  const style=state.style==="all"?null:state.style, dr=state.drive;
   const rows=CRAGS.map((c,j)=>{
+    if(style && !c.styles.includes(style)) return null;
     const road=dr&&dr[j]; const d=road?road.mi:miles(state.origin,c);
-    return {c, d, t:road?road.min:null, ...score(c,state.wx.byCrag[j],i), w:state.wx.byCrag[j]};
-  }).filter(r=>r.d<=state.radius).sort((a,b)=>b.s-a.s||(a.t??a.d)-(b.t??b.d));
-  const when=dayLabel(state.wx.dates[i],state.day).toLowerCase();
+    if(d>state.radius) return null;
+    return {c, j, d, t:road?road.min:null, ...dayResult(c,j,style,state.day)};
+  }).filter(Boolean).sort((a,b)=>b.s-a.s||(a.t??a.d)-(b.t??b.d));
+  const when=dayLabel(state.day).toLowerCase();
   if(!rows.length){
-    $("pick").innerHTML=`<p>No crags within ${state.radius} mi of ${state.origin.label}. Widen the radius to see options.</p>`;
+    $("pick").innerHTML=`<p>No ${STYLE_NAME[state.style]} areas within ${state.radius} mi of ${esc(state.origin.label)}. Widen the radius to see options.</p>`;
     $("list").innerHTML=""; return;
   }
   const top=rows[0], [rk,rl]=rating(top.s);
   $("pick").innerHTML=`<div class="big r-${rk}" style="color:var(--c)">${top.s}</div>
-    <div><div class="label">Best ${when} within ${state.radius} mi of ${esc(state.origin.label)}</div>
-    <h2>${esc(top.c.name)}</h2><p>${away(top)} · ${rl} · ${Math.round(top.w.tmax[i])}°/${Math.round(top.w.tmin[i])}°F · ${esc(top.notes[0]||"solid all-round conditions")}</p></div>`;
+    <div><div class="label">Best ${STYLE_NAME[state.style]} ${when} within ${state.radius} mi of ${esc(state.origin.label)}</div>
+    <h2>${nameLink(top.c)}</h2><p>${away(top)} · ${rl} from ${hourLabel(top.win[0])}–${hourLabel(top.win[2]+1)} · ${Math.round(top.temp)}°F · ${esc(top.notes[0]||"solid all-round conditions")}</p></div>`;
   $("list").innerHTML=rows.map((r,n)=>{
-    const [k,l]=rating(r.s), w=r.w;
+    const [k,l]=rating(r.s);
     return `<article class="row">
       <div class="rank">${String(n+1).padStart(2,"0")}</div>
-      <div><div class="name">${esc(r.c.name)}</div>
+      <div><div class="name">${nameLink(r.c)}</div>
         <div class="meta">${esc(r.c.area)} · ${away(r)} · ${r.c.elev.toLocaleString()} ft</div>
-        <div class="tags"><span class="tag">${r.c.rock}</span><span class="tag">${r.c.style}</span>${r.c.aspect!=="mixed"?`<span class="tag">${r.c.aspect}-facing</span>`:""}</div></div>
+        <div class="tags">${r.c.styles.map(st=>`<span class="tag st-${st}">${st}</span>`).join("")}<span class="tag">${r.c.rock}</span>${r.c.aspect!=="mixed"?`<span class="tag">${r.c.aspect}-facing</span>`:""}</div>
+        ${r.c.access?`<div class="access">${esc(r.c.access)}</div>`:""}</div>
       <div class="stats">
-        <div><span>Hi / Lo</span>${Math.round(w.tmax[i])}° / ${Math.round(w.tmin[i])}°</div>
-        <div><span>Wind</span>${Math.round(w.wind[i])} mph</div>
-        <div><span>Humidity</span>${Math.round(w.rh[i])}%</div>
-        <div><span>Rain 48h</span>${((w.pr[i-1]||0)+(w.pr[i-2]||0)).toFixed(2)}"</div>
+        <div><span>Best window</span>${hourLabel(r.win[0])}–${hourLabel(r.win[2]+1)}</div>
+        <div><span>Temp</span>${Math.round(r.temp)}°F</div>
+        <div><span>Wind / RH</span>${Math.round(r.ws)} mph · ${Math.round(r.rh)}%</div>
+        <div><span>Rain 48h</span>${r.rain48.toFixed(2)}"</div>
         ${r.notes.length?`<div class="why">${esc(r.notes.join("; "))}.</div>`:""}
       </div>
       <div class="score r-${k}"><b>${r.s}</b><span class="chip">${l}</span></div>
+      ${strip(r.c,r.j,style,r)}
     </article>`;}).join("");
+  document.querySelectorAll("details.hours").forEach(el=>el.addEventListener("toggle",()=>{const j=+el.id.slice(4); el.open?openRows.add(j):openRows.delete(j);}));
 }
+function nameLink(c){return c.mp?`<a href="${esc(c.mp)}" target="_blank" rel="noopener">${esc(c.name)}</a>`:esc(c.name)}
 function hm(m){m=Math.round(m);return m<60?m+" min":Math.floor(m/60)+" h "+String(m%60).padStart(2,"0")+" min"}
 function away(r){return r.t!=null?`${hm(r.t)} drive (${Math.round(r.d)} road mi)`:`${Math.round(r.d)} mi straight-line`}
 function esc(s){return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}
 
 // ---------- controls ----------
+function renderStyles(){ document.querySelectorAll("#styles button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.st===state.style))); }
+document.querySelectorAll("#styles button").forEach(b=>b.onclick=()=>{state.style=b.dataset.st; try{localStorage.setItem("sendcast.style",state.style)}catch(_){}; renderStyles(); render();});
+renderStyles();
+$("count").textContent=CRAGS.length;
 $("radius").value=state.radius; $("radiusOut").textContent=state.radius+" mi";
 $("radius").oninput=e=>{state.radius=+e.target.value; $("radiusOut").textContent=state.radius+" mi"; try{localStorage.setItem("sendcast.radius",state.radius)}catch(_){}; render();};
 $("origin").onchange=e=>{const [lat,lon]=e.target.value.split(",").map(Number); state.origin={lat,lon,label:e.target.selectedOptions[0].textContent}; updateDrive();};
@@ -301,7 +550,7 @@ $("locate").onclick=()=>{
 (async()=>{
   state.wx=sampleData(); renderDays(); render();   // paint immediately
   updateDrive();
-  try{ state.wx=await loadLive(); state.live=true; }
+  try{ const live=await loadLive(); hourCache.clear(); state.wx=live; state.live=true; }
   catch(e){ state.live=false; }
   state.wxTried=true; updateNotice(); renderDays(); render();
 })();
