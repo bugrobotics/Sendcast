@@ -22,6 +22,8 @@
   --accent:#6FC4A0; --accent-ink:#0F1512;
   --prime:#5BC88C; --good:#A4CF6A; --fair:#E3B04B; --poor:#E07A66; --rain:#6FA8E8; --night:rgba(0,0,0,.28); color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
 .wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:28px 48px;display:grid;gap:22px}
 h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,6vw,52px);line-height:1;margin:0;letter-spacing:.01em;text-wrap:balance}
@@ -69,53 +71,6 @@ input[type=range]{accent-color:var(--accent);width:160px}
 .slot .to{color:var(--muted);font-size:13px}
 .hint{font-size:12px;color:var(--muted)}
 button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
-.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
-.leaflet-container{overflow:hidden;-webkit-tap-highlight-color:transparent;font-family:var(--body);font-size:12px}
-.leaflet-container img{max-width:none!important;max-height:none!important}
-.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow{user-select:none;-webkit-user-drag:none}
-.leaflet-tile{visibility:hidden}.leaflet-tile-loaded{visibility:inherit}
-.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}.leaflet-shadow-pane{z-index:500}.leaflet-marker-pane{z-index:600}.leaflet-tooltip-pane{z-index:650}.leaflet-popup-pane{z-index:700}
-.leaflet-map-pane canvas{z-index:100}.leaflet-map-pane svg{z-index:200}
-.leaflet-pane>svg path,.leaflet-tile-container{pointer-events:none}
-.leaflet-pane>svg path.leaflet-interactive{pointer-events:auto}
-.leaflet-zoom-animated{transform-origin:0 0}
-.leaflet-zoom-anim .leaflet-zoom-animated{transition:transform .25s cubic-bezier(0,0,.25,1)}
-.leaflet-zoom-anim .leaflet-zoom-hide{visibility:hidden}
-.leaflet-interactive{cursor:pointer}.leaflet-grab{cursor:grab}.leaflet-dragging .leaflet-grab{cursor:grabbing}
-.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom{touch-action:none}
-.leaflet-control{position:relative;z-index:800;pointer-events:auto;float:left;clear:both}
-.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
-.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}
-.leaflet-right .leaflet-control{float:right}
-.leaflet-top .leaflet-control{margin-top:10px}.leaflet-bottom .leaflet-control{margin-bottom:0}.leaflet-left .leaflet-control{margin-left:10px}.leaflet-right .leaflet-control{margin-right:0}
-.leaflet-bar{border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.leaflet-bar a{display:block;width:30px;height:30px;line-height:30px;text-align:center;text-decoration:none;font-size:18px;background:var(--surface);color:var(--fg)}
-.leaflet-bar a+a{border-top:1px solid var(--line)}
-.leaflet-bar a:hover{background:var(--bg)}
-.leaflet-control-attribution{background:color-mix(in srgb,var(--surface) 85%,transparent);padding:0 6px;font-size:10px;color:var(--muted)}
-.leaflet-control-attribution a{color:var(--muted)}
-.leaflet-popup{position:absolute;text-align:left;margin-bottom:18px}
-.leaflet-popup-content-wrapper{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;box-shadow:0 3px 14px rgba(0,0,0,.18)}
-.leaflet-popup-content{margin:10px 14px;line-height:1.4;font-size:13px}
-.leaflet-popup-tip-container{width:40px;height:20px;position:absolute;left:50%;margin-top:-1px;margin-left:-20px;overflow:hidden;pointer-events:none}
-.leaflet-popup-tip{width:17px;height:17px;margin:-10px auto 0;transform:rotate(45deg);background:var(--surface);border:1px solid var(--line)}
-.leaflet-popup-close-button{position:absolute;top:2px;right:4px;font-size:18px;text-decoration:none;color:var(--muted)}
-.leaflet-tooltip{position:absolute;pointer-events:none;white-space:nowrap}
-.leaflet-fade-anim .leaflet-popup{opacity:0;transition:opacity .2s linear}.leaflet-fade-anim .leaflet-map-pane .leaflet-popup{opacity:1}
-.mapwrap{display:grid;gap:8px}
-.maphead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.maphead .hint{flex:1;min-width:0}
-#map{height:min(460px,62vh);border:1px solid var(--line);border-radius:10px;background:var(--surface)}
-.maplab{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-family:var(--body);font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.maplab.top{font-weight:600;border-color:var(--c);box-shadow:0 0 0 1px var(--c)}
-.maplab b{color:var(--c);font-family:var(--mono)}
-.townlab{background:none;border:0;box-shadow:none;color:var(--muted);font-size:11px;font-weight:500}
-.pop b{display:block;font-size:14px}
-.pop .s{font-family:var(--mono);color:var(--c);font-weight:600}
-.pop button{margin-top:6px;font-size:12px;padding:4px 8px}
-.row.flash{animation:flash 1.6s ease-out}
-@keyframes flash{from{background:color-mix(in srgb,var(--accent) 22%,transparent)}to{background:transparent}}
-@media (prefers-reduced-motion:reduce){.row.flash{animation:none}}
 .hours{grid-column:1/-1;margin-top:2px}
 .hours summary{cursor:pointer;font-size:13px;color:var(--accent);font-weight:500;list-style:none;display:inline-flex;gap:6px;align-items:center}
 .hours summary::-webkit-details-marker{display:none}
@@ -129,7 +84,7 @@ button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-de
 .chart .bandlab,.chart .tick,.chart .paneltitle{fill:var(--muted)}
 .chart .paneltitle{font-family:var(--body);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
 .chart .daysep{stroke:var(--line);stroke-width:1}
-.chart .daylab{fill:var(--muted);cursor:pointer;font-family:var(--body);font-size:12px}
+.chart .daylab{fill:var(--muted);font-family:var(--body);font-size:12px}
 .chart .daylab.on{fill:var(--fg);font-weight:600}
 .chart .win{fill:none;stroke:var(--fg);stroke-width:1;stroke-dasharray:3 3;opacity:.55}
 .chart .area{fill:var(--accent);opacity:.14}
@@ -223,16 +178,11 @@ button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-de
 
   <p class="notice" id="notice" hidden></p>
   <section class="pick" id="pick" aria-live="polite"></section>
-  <section class="mapwrap" id="mapwrap" aria-label="Map of areas in range">
-    <div class="maphead"><span class="label">Map</span><span class="hint" id="mapnote">Circle shows your range. Dots are colored by score; the top five are numbered.</span><button type="button" class="link" id="mapToggle">Hide map</button></div>
-    <div id="map"></div>
-  </section>
   <section class="list" id="list" aria-label="Crags ranked by conditions"></section>
 
   <p class="foot">Hourly forecasts from Open-Meteo, requested at each crag's own elevation (US runs use the ~3 km HRRR blend). Drive times and road miles come from the OSRM router on OpenStreetMap roads. They don't include traffic or the last stretch on dirt roads, and the radius filters by road miles. Area list, coordinates and style tags come from Mountain Project, 8a.nu and climber forums; names link to each area's Mountain Project page. Coordinates are approximate; always check access, closures and raptor seasons before you go.</p>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 // One entry per crag cluster. styles lists what the area is known for, most prominent first.
 const CRAGS = /*CRAGDATA*/[{"name":"Fremont Canyon","area":"Alcova, WY","lat":42.4648,"lon":-106.828,"elev":5500,"rock":"granite","aspect":"mixed","styles":["trad","sport"],"access":"","mp":"https://mountainproject.com/area/105825913/fremont-canyon"},
@@ -586,22 +536,22 @@ function strip(c,j,style,r){
       <span class="sc">${sc}</span><span class="wx">${Math.round(w.t[h])}°</span>
       <span class="${p>0.01?"rn":"wx"}">${p>0.01?p.toFixed(2)+'"':Math.round(w.ws[h])+"mph"}</span></div>`;
   }
-  return `<details class="hours" id="hrs-${j}"${openRows.has(j)?" open":""}><summary>Hourly · ${slotSet()?"your slot":"best"} ${winLabel(r)}</summary>
+  return `<details class="hours" id="hrs-${j}"${openRows.has(j)?" open":""}><summary>Hourly · ${dayLabel(state.day)} · ${slotSet()?"your slot":"best"} ${winLabel(r)}</summary>
     <div class="chart" data-j="${j}"></div>
     <div class="strip"><div class="strip-in">${cells}</div></div>
     <div class="legend">Bar and number: hourly score. Below: temperature, then wind (or rain in inches). Outlined hours are ${slotSet()?"your time slot":"the best window"}.</div></details>`;
 }
 const openRows=new Set();
 
-// ---------- 5-day line chart (score over time, temperature beneath on its own axis) ----------
+// ---------- day line chart (hourly score, temperature beneath on its own axis) ----------
 const BANDS=[["prime",80,100,"Prime"],["good",62,80,"Good"],["fair",40,62,"Fair"],["poor",0,40,"Poor"]];
 function drawChart(box){
   if(!box||!state.wx) return;
   const j=+box.dataset.j, c=CRAGS[j], style=state.style==="all"?null:state.style;
   const w=state.wx.byCrag[j], hs=hoursFor(c,j,style), r=dayResult(c,j,style,state.day);
-  const H0=PAST*24, H1=(PAST+DAYS)*24-1, W=Math.max(320,box.clientWidth||640);
+  const H0=(PAST+state.day)*24, H1=H0+23, W=Math.max(320,box.clientWidth||640);
   const L=34, R=44, T=22, SH=130, GAP=26, TH=64, B=8, HT=T+SH+GAP+TH+B;
-  const x=h=>L+(h-H0)/(H1-H0)*(W-L-R);
+  const x=h=>L+(h-H0)/(H1-H0)*(W-L-R);   // hour h plotted at its start
   const ys=v=>T+SH-(v/100)*SH;
   const temps=w.t.slice(H0,H1+1), tMin=Math.floor(Math.min(...temps)/10)*10, tMax=Math.ceil(Math.max(...temps)/10)*10||tMin+10;
   const yt=v=>T+SH+GAP+TH-((v-tMin)/(tMax-tMin||1))*TH;
@@ -611,11 +561,9 @@ function drawChart(box){
   // score bands + labels
   for(const [k,lo,hi,lab] of BANDS){ g+=`<rect class="band r-${k}" x="${L}" y="${ys(hi)}" width="${W-L-R}" height="${ys(lo)-ys(hi)}"/><text class="bandlab" x="${W-R+6}" y="${(ys(lo)+ys(hi))/2+4}">${lab}</text>`; }
   for(const v of [0,50,100]) g+=`<text class="tick" x="${L-6}" y="${ys(v)+4}" text-anchor="end">${v}</text>`;
-  // day separators + labels (click to select a day)
-  for(let d=0;d<DAYS;d++){
-    const hx=x(H0+d*24), mid=x(H0+d*24+12);
-    if(d) g+=`<line class="daysep" x1="${hx}" x2="${hx}" y1="${T}" y2="${T+SH+GAP+TH}"/>`;
-    g+=`<text class="daylab${d===state.day?" on":""}" data-d="${d}" x="${mid}" y="${T-8}" text-anchor="middle">${d===0?"Today":dayLabel(d).replace(/,.*$/,"")}</text>`;
+  // hour ticks every 3 hours
+  for(let h=H0;h<=H1;h+=3){
+    g+=`<line class="daysep" x1="${x(h)}" x2="${x(h)}" y1="${T}" y2="${T+SH+GAP+TH}"/><text class="daylab" x="${x(h)}" y="${T-8}" text-anchor="middle">${hourLabel(h)}</text>`;
   }
   // selected window / slot
   g+=`<rect class="win" x="${x(r.win[0])}" y="${T}" width="${x(r.win[r.win.length-1]+1)-x(r.win[0])}" height="${SH}"/>`;
@@ -632,7 +580,7 @@ function drawChart(box){
   g+=`<polyline class="tline" points="${tp}"/>`;
   g+=`<g class="cross" visibility="hidden"><line class="xline" y1="${T}" y2="${T+SH+GAP+TH}"/><circle class="dot" r="4"/><circle class="tdot" r="3.5"/></g>`;
   g+=`<rect class="hit" x="${L}" y="${T}" width="${W-L-R}" height="${SH+GAP+TH}"/>`;
-  box.innerHTML=`<svg viewBox="0 0 ${W} ${HT}" width="${W}" height="${HT}" role="img" aria-label="Hourly climbing score and temperature for ${esc(c.name)} over ${DAYS} days">${g}</svg><div class="tip" hidden></div>`;
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${HT}" width="${W}" height="${HT}" role="img" aria-label="Hourly climbing score and temperature for ${esc(c.name)}, ${dayLabel(state.day)}">${g}</svg><div class="tip" hidden></div>`;
   const svg=box.firstChild, tip=box.lastChild, cross=svg.querySelector(".cross");
   svg.querySelector(".hit").addEventListener("pointermove",e=>{
     const rect=svg.getBoundingClientRect(), px=(e.clientX-rect.left)*(W/rect.width);
@@ -641,14 +589,13 @@ function drawChart(box){
     cross.querySelector(".xline").setAttribute("x1",x(h)); cross.querySelector(".xline").setAttribute("x2",x(h));
     const dot=cross.querySelector(".dot"); dot.setAttribute("cx",x(h)); dot.setAttribute("cy",ys(sc));
     const td=cross.querySelector(".tdot"); td.setAttribute("cx",x(h)); td.setAttribute("cy",yt(w.t[h]));
-    const day=Math.floor((h-H0)/24), p=w.p[h]||0;
-    tip.innerHTML=`<b>${dayLabel(day)} ${hourLabel(h)}</b><span>Score ${sc} · ${lab}</span><span>${Math.round(w.t[h])}°F · ${Math.round(w.rh[h])}% RH</span><span>Wind ${Math.round(w.ws[h])}, gusts ${Math.round(w.wg[h]||0)} mph</span>${p>0.005?`<span>Rain ${p.toFixed(2)}"</span>`:""}${hs[h].wet>0.03?`<span>Rock likely wet</span>`:""}`;
+    const p=w.p[h]||0;
+    tip.innerHTML=`<b>${hourLabel(h)}</b><span>Score ${sc} · ${lab}</span><span>${Math.round(w.t[h])}°F · ${Math.round(w.rh[h])}% RH</span><span>Wind ${Math.round(w.ws[h])}, gusts ${Math.round(w.wg[h]||0)} mph</span>${p>0.005?`<span>Rain ${p.toFixed(2)}"</span>`:""}${hs[h].wet>0.03?`<span>Rock likely wet</span>`:""}`;
     tip.hidden=false;
     const left=x(h)*(rect.width/W), tw=tip.offsetWidth;
     tip.style.left=Math.max(0,Math.min(rect.width-tw, left+12>rect.width-tw?left-tw-12:left+12))+"px";
   });
   svg.querySelector(".hit").addEventListener("pointerleave",()=>{cross.setAttribute("visibility","hidden"); tip.hidden=true;});
-  svg.querySelectorAll(".daylab").forEach(t=>t.addEventListener("click",()=>{state.day=+t.dataset.d; renderDays(); render();}));
 }
 let rsz; addEventListener("resize",()=>{clearTimeout(rsz); rsz=setTimeout(()=>document.querySelectorAll("details.hours[open] .chart").forEach(drawChart),150);});
 function render(){
@@ -663,7 +610,7 @@ function render(){
   const when=dayLabel(state.day).toLowerCase();
   if(!rows.length){
     $("pick").innerHTML=`<p>No ${STYLE_NAME[state.style]} areas within ${state.radius} mi of ${esc(state.origin.label)}. Widen the radius to see options.</p>`;
-    $("list").innerHTML=""; drawMap([]); return;
+    $("list").innerHTML=""; return;
   }
   const top=rows[0], [rk,rl]=rating(top.s);
   $("pick").innerHTML=`<div class="big r-${rk}" style="color:var(--c)">${top.s}</div>
@@ -687,7 +634,6 @@ function render(){
       <div class="score r-${k}"><b>${r.s}</b><span class="chip">${l}</span></div>
       ${strip(r.c,r.j,style,r)}
     </article>`;}).join("");
-  drawMap(rows);
   document.querySelectorAll("details.hours").forEach(el=>{
     el.addEventListener("toggle",()=>{const j=+el.id.slice(4); if(el.open){openRows.add(j); drawChart(el.querySelector(".chart"));} else openRows.delete(j);});
     if(el.open) drawChart(el.querySelector(".chart"));
@@ -698,53 +644,6 @@ function nameLink(c){return c.mp?`<a href="${esc(c.mp)}" target="_blank" rel="no
 function hm(m){m=Math.round(m);return m<60?m+" min":Math.floor(m/60)+" h "+String(m%60).padStart(2,"0")+" min"}
 function away(r){return r.t!=null?`${hm(r.t)} drive (${Math.round(r.d)} road mi)`:`${Math.round(r.d)} mi straight-line`}
 function esc(s){return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}
-
-// ---------- map ----------
-const map = {m:null, layer:null, fitKey:"", fallback:false, hidden:false};
-try{ map.hidden = localStorage.getItem("sendcast.map")==="hidden"; }catch(e){}
-const darkTheme=()=>{const t=document.documentElement.dataset.theme; return t? t==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;};
-const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-function initMap(){
-  if(map.m || typeof L==="undefined" || map.hidden) return !!map.m;
-  map.m=L.map("map",{scrollWheelZoom:false, zoomSnap:0.25, attributionControl:true}).setView([39.4,-105.6],7);
-  const tiles=L.tileLayer(`https://{s}.basemaps.cartocdn.com/${darkTheme()?"dark_all":"light_all"}/{z}/{x}/{y}{r}.png`,
-    {subdomains:"abcd", maxZoom:15, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'}).addTo(map.m);
-  tiles.once("tileerror",()=>{ if(!map.fallback){ map.fallback=true; drawFallback(); }});
-  map.m.on("click",()=>map.m.scrollWheelZoom.enable());
-  map.layer=L.layerGroup().addTo(map.m);
-  return true;
-}
-// When the basemap can't load (offline / locked-down viewer), draw state lines and towns so the map still reads.
-function drawFallback(){
-  const st={color:cssVar("--muted"),weight:1.5,opacity:.6,interactive:false,fill:false};
-  L.polygon([[41,-109.05],[41,-102.05],[37,-102.05],[37,-109.05]],st).addTo(map.m);
-  [[[41,-111.05],[41,-109.05]],[[41,-104.05],[43,-104.05]],[[37,-109.05],[36,-109.05]],[[37,-103],[36,-103]]].forEach(l=>L.polyline(l,st).addTo(map.m));
-  [["Denver",39.739,-104.99],["Boulder",40.015,-105.27],["Fort Collins",40.585,-105.084],["Colorado Springs",38.834,-104.821],["Pueblo",38.254,-104.609],["Grand Junction",39.064,-108.55],["Glenwood Springs",39.55,-107.325],["Gunnison",38.545,-106.925],["Durango",37.275,-107.88],["Alamosa",37.469,-105.87],["Taos",36.407,-105.573],["Laramie",41.311,-105.591],["Steamboat",40.485,-106.832],["Salida",38.535,-105.999]]
-    .forEach(([n,la,lo])=>L.marker([la,lo],{opacity:0,interactive:false,icon:L.divIcon({className:"",html:"",iconSize:[0,0]})}).bindTooltip(n,{permanent:true,direction:"center",className:"townlab"}).addTo(map.m));
-}
-function drawMap(rows){
-  $("mapwrap").querySelector("#map").hidden=map.hidden; $("mapToggle").textContent=map.hidden?"Show map":"Hide map";
-  if(map.hidden) return;
-  if(!initMap()){ $("mapnote").textContent="The map couldn't load in this view."; return; }
-  const o=state.origin; map.layer.clearLayers();
-  const ring=L.circle([o.lat,o.lon],{radius:state.radius*1609.34, color:cssVar("--accent"), weight:1.5, dashArray:"6 5", fillColor:cssVar("--accent"), fillOpacity:.05, interactive:false}).addTo(map.layer);
-  L.circleMarker([o.lat,o.lon],{radius:6,color:cssVar("--bg"),weight:2,fillColor:cssVar("--fg"),fillOpacity:1}).bindTooltip(o.label==="you"?"You":o.label,{direction:"top",offset:[0,-6]}).addTo(map.layer);
-  const inRange=new Set(rows.map(r=>r.j));
-  // out-of-range areas as faint context
-  CRAGS.forEach((c,j)=>{ if(!inRange.has(j)) L.circleMarker([c.lat,c.lon],{radius:3,stroke:false,fillColor:cssVar("--muted"),fillOpacity:.35,interactive:false}).addTo(map.layer); });
-  // in range: worst first so the best sit on top
-  [...rows].reverse().forEach(r=>{
-    const rank=rows.indexOf(r)+1, [k,l]=rating(r.s), col=cssVar("--"+k), top=rank<=5;
-    const mk=L.circleMarker([r.c.lat,r.c.lon],{radius:rank===1?11:top?8:6, color:rank===1?cssVar("--fg"):cssVar("--bg"), weight:rank===1?3:1.5, fillColor:col, fillOpacity:.95}).addTo(map.layer);
-    if(top) mk.bindTooltip(`<b>${rank}</b> ${esc(r.c.name)} <b>${r.s}</b>`,{permanent:true,direction:"right",offset:[rank===1?12:9,0],className:`maplab r-${k}${rank===1?" top":""}`});
-    mk.bindPopup(`<div class="pop r-${k}"><b>${rank}. ${esc(r.c.name)}</b><span class="s">${r.s} ${l}</span> · ${winLabel(r)}<br>${away(r)}<br>${r.c.styles.join(", ")} · ${r.c.rock}<br><button type="button" data-j="${r.j}">Show in list</button></div>`);
-    mk.on("popupopen",e=>{const b=e.popup.getElement().querySelector("button"); b.onclick=()=>{map.m.closePopup(); const row=$("row-"+r.j), d=$("hrs-"+r.j); if(d&&!d.open) d.open=true; row.scrollIntoView({behavior:"smooth",block:"start"}); row.classList.remove("flash"); void row.offsetWidth; row.classList.add("flash");};});
-  });
-  const key=o.lat+","+o.lon+","+state.radius;
-  if(key!==map.fitKey){ map.fitKey=key; map.m.fitBounds(ring.getBounds(),{padding:[16,16]}); }
-  const top=rows[0]; $("mapnote").textContent= top ? `Circle shows your ${state.radius}-mile range (straight-line; the list filters by road miles). #1 is ${top.c.name}.` : `No areas in range. Widen the radius.`;
-}
-$("mapToggle").onclick=()=>{ map.hidden=!map.hidden; try{localStorage.setItem("sendcast.map",map.hidden?"hidden":"shown")}catch(_){}; render(); if(map.m) setTimeout(()=>map.m.invalidateSize(),0); };
 
 // ---------- controls ----------
 function renderStyles(){ document.querySelectorAll("#styles button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.st===state.style))); }
