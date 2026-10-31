@@ -8,7 +8,7 @@
 :root{
   --bg:#ECEFEA; --surface:#F8F9F6; --fg:#1C221F; --muted:#5B655F; --line:#D3D9D2;
   --accent:#2E6A55; --accent-ink:#F4F8F5;
-  --prime:#23784C; --good:#5C8F2E; --fair:#B07A12; --poor:#A8402F; --rain:#2F6DB5; --night:rgba(28,34,31,.06);
+  --prime:#23784C; --good:#5C8F2E; --fair:#B07A12; --poor:#A8402F; --rain:#2F6DB5; --night:rgba(28,34,31,.06); --stripe:#E2E7E0;
   --display:"Barlow Condensed","Arial Narrow",sans-serif;
   --body:"IBM Plex Sans",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
@@ -16,11 +16,11 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#141916; --surface:#1C231F; --fg:#E4EAE5; --muted:#98A39C; --line:#2E3832;
   --accent:#6FC4A0; --accent-ink:#0F1512;
-  --prime:#5BC88C; --good:#A4CF6A; --fair:#E3B04B; --poor:#E07A66; --rain:#6FA8E8; --night:rgba(0,0,0,.28); color-scheme:dark}}
+  --prime:#5BC88C; --good:#A4CF6A; --fair:#E3B04B; --poor:#E07A66; --rain:#6FA8E8; --night:rgba(0,0,0,.28); --stripe:#1A211D; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#141916; --surface:#1C231F; --fg:#E4EAE5; --muted:#98A39C; --line:#2E3832;
   --accent:#6FC4A0; --accent-ink:#0F1512;
-  --prime:#5BC88C; --good:#A4CF6A; --fair:#E3B04B; --poor:#E07A66; --rain:#6FA8E8; --night:rgba(0,0,0,.28); color-scheme:dark}
+  --prime:#5BC88C; --good:#A4CF6A; --fair:#E3B04B; --poor:#E07A66; --rain:#6FA8E8; --night:rgba(0,0,0,.28); --stripe:#1A211D; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0}
@@ -47,7 +47,8 @@ input[type=range]{accent-color:var(--accent);width:160px}
 .pick h2{font-family:var(--display);font-size:30px;margin:2px 0;line-height:1.05}
 .pick p{margin:0;color:var(--muted)}
 .list{display:grid;gap:0;border-top:1px solid var(--line)}
-.row{display:grid;grid-template-columns:2.2rem minmax(0,1.5fr) minmax(0,2fr) 4.5rem;gap:14px;align-items:start;padding:14px 4px;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:2.2rem minmax(0,1.5fr) minmax(0,2fr) 4.5rem;gap:14px;align-items:start;padding:16px 12px;border-bottom:1px solid var(--line)}
+.row:nth-child(even){background:var(--stripe)}
 .rank{font-family:var(--mono);color:var(--muted);padding-top:3px}
 .name{font-weight:600}
 .meta{font-size:13px;color:var(--muted)}
@@ -116,7 +117,8 @@ button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-de
   .pick{grid-template-columns:1fr}
   .pick .big{font-size:52px}
 }
-@media (prefers-reduced-motion:no-preference){.row{transition:background .15s}.row:hover{background:var(--surface)}}
+@media (prefers-reduced-motion:no-preference){.row{transition:background .15s}.row:hover{background:var(--surface)}
+.row:nth-child(even) .cell.win,.row:nth-child(even) .tip{background:var(--bg)}}
 </style>
 
 <div class="wrap">
