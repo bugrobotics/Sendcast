@@ -65,6 +65,10 @@ input[type=range]{accent-color:var(--accent);width:160px}
 .score b{color:var(--c)}
 .r-prime{--c:var(--prime)} .r-good{--c:var(--good)} .r-fair{--c:var(--fair)} .r-poor{--c:var(--poor)}
 .empty{padding:24px 4px;color:var(--muted)}
+.slot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.slot .to{color:var(--muted);font-size:13px}
+.hint{font-size:12px;color:var(--muted)}
+button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
 .hours{grid-column:1/-1;margin-top:2px}
 .hours summary{cursor:pointer;font-size:13px;color:var(--accent);font-weight:500;list-style:none;display:inline-flex;gap:6px;align-items:center}
 .hours summary::-webkit-details-marker{display:none}
@@ -94,7 +98,7 @@ input[type=range]{accent-color:var(--accent);width:160px}
 <div class="wrap">
   <header>
     <h1>Front Range Sendcast</h1>
-    <p class="sub">Where the rock is best within your range today, across <span id="count">all</span> Colorado-area crags. Every hour gets a score from friction temperature, sun on the rock, humidity, wind and rain, and whether the rock has dried since the last storm. The day's score is the best three-hour window of daylight.</p>
+    <p class="sub">Where the rock is best within your range today, across <span id="count">all</span> Colorado-area crags. Every hour gets a score from friction temperature, sun on the rock, humidity, wind and rain, and whether the rock has dried since the last storm. The day's score is the best three daylight hours, or your chosen time slot when you set one.</p>
   </header>
 
   <section class="controls" aria-label="Search settings">
@@ -131,6 +135,16 @@ input[type=range]{accent-color:var(--accent);width:160px}
         <button type="button" id="st-sport" data-st="sport">Sport</button>
         <button type="button" id="st-trad" data-st="trad">Trad</button>
       </div>
+    </div>
+    <div class="ctl">
+      <span class="label" id="slotLbl">Time of day</span>
+      <div class="slot" role="group" aria-labelledby="slotLbl">
+        <select id="from" aria-label="Start time"></select>
+        <span class="to">to</span>
+        <select id="to" aria-label="End time"></select>
+        <button type="button" id="clearSlot" class="link" hidden>Clear</button>
+      </div>
+      <span class="hint" id="slotHint"></span>
     </div>
     <div class="ctl">
       <span class="label">Day</span>
@@ -306,9 +320,10 @@ const SUN_GAIN = {S:12, E:6, W:6, mixed:5, N:1};   // °F a wall gains in full s
 const PAST = 2, DAYS = 5, WINDOW = 3;
 
 const $ = id => document.getElementById(id);
-const state = {origin:{lat:39.7392,lon:-104.9903,label:"Denver"}, radius:50, style:"all", day:0, wx:null, live:false, drive:null, driveOk:null};
+const state = {origin:{lat:39.7392,lon:-104.9903,label:"Denver"}, radius:50, style:"all", from:null, to:null, day:0, wx:null, live:false, drive:null, driveOk:null};
 const driveCache = new Map();
-try{ const r = Number(localStorage.getItem("sendcast.radius")); if(r>=10&&r<=250) state.radius=r; const st=localStorage.getItem("sendcast.style"); if(STYLE_NAME[st]) state.style=st; }catch(e){}
+try{ const r = Number(localStorage.getItem("sendcast.radius")); if(r>=10&&r<=250) state.radius=r; const st=localStorage.getItem("sendcast.style"); if(STYLE_NAME[st]) state.style=st;
+  const sl=JSON.parse(localStorage.getItem("sendcast.slot")||"null"); if(sl&&sl.from<sl.to){state.from=sl.from; state.to=sl.to;} }catch(e){}
 
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const lerp=(x,x0,x1,y0,y1)=>y0+(y1-y0)*clamp((x-x0)/(x1-x0));
@@ -382,18 +397,26 @@ function hoursFor(c,j,style){
   const hs=w.t.map((_,h)=>hourScore(c,w,h,wet,T));
   hourCache.set(key,hs); return hs;
 }
-// Day score = best WINDOW-hour run of daylight hours.
+// Day score: with a chosen time slot, the slot's hours (mean, pulled down by its worst hour);
+// otherwise the best WINDOW-hour run of daylight.
+const slotSet = () => state.from!=null && state.to!=null && state.to>state.from;
 function dayResult(c,j,style,d){
   const w=state.wx.byCrag[j], hs=hoursFor(c,j,style), T=TEMP[style]||TEMP[c.styles[0]]||TEMP.sport;
   const h0=(PAST+d)*24, light=[];
   for(let h=h0;h<h0+24;h++) if(w.day[h]) light.push(h);
-  let best=-1, at=light[0]??h0+10;
-  for(let k=0;k+WINDOW<=light.length;k++){
-    const m=(hs[light[k]].s+hs[light[k+1]].s+hs[light[k+2]].s)/WINDOW;
-    if(m>best){best=m; at=light[k];}
+  let best=-1, at=light[0]??h0+10, win;
+  if (slotSet()){
+    win=[]; for(let h=h0+state.from;h<h0+state.to;h++) win.push(h);
+    const sc=win.map(h=>hs[h].s), mean=sc.reduce((a,b)=>a+b,0)/sc.length;
+    best=0.75*mean+0.25*Math.min(...sc); at=win[0];
+  } else {
+    for(let k=0;k+WINDOW<=light.length;k++){
+      const m=(hs[light[k]].s+hs[light[k+1]].s+hs[light[k+2]].s)/WINDOW;
+      if(m>best){best=m; at=light[k];}
+    }
+    win=[at,at+1,at+2];
   }
-  const win=[at,at+1,at+2];
-  const avg=f=>win.reduce((a,h)=>a+f(h),0)/WINDOW;
+  const avg=f=>win.reduce((a,h)=>a+f(h),0)/win.length;
   const feel=avg(h=>hs[h].feel), rain48=w.p.slice(Math.max(0,at-48),at).reduce((a,b)=>a+(b||0),0);
   const rainDay=w.p.slice(h0,h0+24).reduce((a,b)=>a+(b||0),0);
   const notes=[];
@@ -404,6 +427,9 @@ function dayResult(c,j,style,d){
   else if (feel>=T.ok0 && feel<=T.ok1) notes.push("friction-range temps");
   const gust=Math.max(...win.map(h=>w.wg[h]||0));
   if (gust>30) notes.push(`gusts to ${Math.round(gust)} mph`);
+  if (slotSet() && win.some(h=>!w.day[h])) notes.push("part of your slot is after dark; bring a headlamp");
+  const slotRain=win.reduce((a,h)=>a+(w.p[h]||0),0);
+  if (slotSet() && slotRain>0.01) notes.unshift(`rain during your slot (${slotRain.toFixed(2)}")`);
   return {s:Math.round(Math.max(0,best)), at, win, h0, light, rain48, notes,
     temp:avg(h=>w.t[h]), ws:avg(h=>w.ws[h]), rh:avg(h=>w.rh[h])};
 }
@@ -473,7 +499,7 @@ function renderDays(){
 }
 function strip(c,j,style,r){
   const w=state.wx.byCrag[j], hs=hoursFor(c,j,style);
-  const first=Math.max(r.h0,(r.light[0]??r.h0+7)-1), last=Math.min(r.h0+23,(r.light[r.light.length-1]??r.h0+17)+1);
+  const first=Math.max(r.h0,Math.min((r.light[0]??r.h0+7)-1,r.win[0])), last=Math.min(r.h0+23,Math.max((r.light[r.light.length-1]??r.h0+17)+1,r.win[r.win.length-1]));
   let cells="";
   for(let h=first;h<=last;h++){
     const sc=hs[h].s, [k]=rating(sc), p=w.p[h]||0;
@@ -482,9 +508,9 @@ function strip(c,j,style,r){
       <span class="sc">${sc}</span><span class="wx">${Math.round(w.t[h])}°</span>
       <span class="${p>0.01?"rn":"wx"}">${p>0.01?p.toFixed(2)+'"':Math.round(w.ws[h])+"mph"}</span></div>`;
   }
-  return `<details class="hours" id="hrs-${j}"${openRows.has(j)?" open":""}><summary>Hourly · best ${hourLabel(r.win[0])}–${hourLabel(r.win[2]+1)}</summary>
+  return `<details class="hours" id="hrs-${j}"${openRows.has(j)?" open":""}><summary>Hourly · ${slotSet()?"your slot":"best"} ${winLabel(r)}</summary>
     <div class="strip"><div class="strip-in">${cells}</div></div>
-    <div class="legend">Bar and number: hourly score. Below: temperature, then wind (or rain in inches). Outlined hours are the best window.</div></details>`;
+    <div class="legend">Bar and number: hourly score. Below: temperature, then wind (or rain in inches). Outlined hours are ${slotSet()?"your time slot":"the best window"}.</div></details>`;
 }
 const openRows=new Set();
 function render(){
@@ -504,7 +530,7 @@ function render(){
   const top=rows[0], [rk,rl]=rating(top.s);
   $("pick").innerHTML=`<div class="big r-${rk}" style="color:var(--c)">${top.s}</div>
     <div><div class="label">Best ${STYLE_NAME[state.style]} ${when} within ${state.radius} mi of ${esc(state.origin.label)}</div>
-    <h2>${nameLink(top.c)}</h2><p>${away(top)} · ${rl} from ${hourLabel(top.win[0])}–${hourLabel(top.win[2]+1)} · ${Math.round(top.temp)}°F · ${esc(top.notes[0]||"solid all-round conditions")}</p></div>`;
+    <h2>${nameLink(top.c)}</h2><p>${away(top)} · ${rl} ${slotSet()?"for":"from"} ${winLabel(top)} · ${Math.round(top.temp)}°F · ${esc(top.notes[0]||"solid all-round conditions")}</p></div>`;
   $("list").innerHTML=rows.map((r,n)=>{
     const [k,l]=rating(r.s);
     return `<article class="row">
@@ -514,7 +540,7 @@ function render(){
         <div class="tags">${r.c.styles.map(st=>`<span class="tag st-${st}">${st}</span>`).join("")}<span class="tag">${r.c.rock}</span>${r.c.aspect!=="mixed"?`<span class="tag">${r.c.aspect}-facing</span>`:""}</div>
         ${r.c.access?`<div class="access">${esc(r.c.access)}</div>`:""}</div>
       <div class="stats">
-        <div><span>Best window</span>${hourLabel(r.win[0])}–${hourLabel(r.win[2]+1)}</div>
+        <div><span>${slotSet()?"Your slot":"Best window"}</span>${winLabel(r)}</div>
         <div><span>Temp</span>${Math.round(r.temp)}°F</div>
         <div><span>Wind / RH</span>${Math.round(r.ws)} mph · ${Math.round(r.rh)}%</div>
         <div><span>Rain 48h</span>${r.rain48.toFixed(2)}"</div>
@@ -525,6 +551,7 @@ function render(){
     </article>`;}).join("");
   document.querySelectorAll("details.hours").forEach(el=>el.addEventListener("toggle",()=>{const j=+el.id.slice(4); el.open?openRows.add(j):openRows.delete(j);}));
 }
+function winLabel(r){return hourLabel(r.win[0])+"–"+hourLabel(r.win[r.win.length-1]+1)}
 function nameLink(c){return c.mp?`<a href="${esc(c.mp)}" target="_blank" rel="noopener">${esc(c.name)}</a>`:esc(c.name)}
 function hm(m){m=Math.round(m);return m<60?m+" min":Math.floor(m/60)+" h "+String(m%60).padStart(2,"0")+" min"}
 function away(r){return r.t!=null?`${hm(r.t)} drive (${Math.round(r.d)} road mi)`:`${Math.round(r.d)} mi straight-line`}
@@ -534,6 +561,22 @@ function esc(s){return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",
 function renderStyles(){ document.querySelectorAll("#styles button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.st===state.style))); }
 document.querySelectorAll("#styles button").forEach(b=>b.onclick=()=>{state.style=b.dataset.st; try{localStorage.setItem("sendcast.style",state.style)}catch(_){}; renderStyles(); render();});
 renderStyles();
+function hourName(h){return h===0||h===24?"12 AM":h===12?"12 PM":(h%12)+(h<12?" AM":" PM")}
+$("from").innerHTML='<option value="">Any</option>'+[...Array(18)].map((_,k)=>`<option value="${k+5}">${hourName(k+5)}</option>`).join("");
+$("to").innerHTML='<option value="">Any</option>'+[...Array(18)].map((_,k)=>`<option value="${k+6}">${hourName(k+6)}</option>`).join("");
+function syncSlot(){ $("from").value=state.from??""; $("to").value=state.to??""; $("slotHint").textContent=slotSet()?`Ranking by ${hourName(state.from)}–${hourName(state.to)}`:"Ranking by each area's best 3 daylight hours"; $("clearSlot").hidden=!slotSet(); }
+function setSlot(which,v){
+  state[which]= v===""?null:+v;
+  if(state.from!=null && state.to==null) state.to=Math.min(23,state.from+3);
+  if(state.to!=null && state.from==null) state.from=Math.max(5,state.to-3);
+  if(state.from!=null && state.to!=null && state.to<=state.from){ if(which==="from") state.to=Math.min(23,state.from+1); else state.from=Math.max(5,state.to-1); }
+  try{localStorage.setItem("sendcast.slot",JSON.stringify(slotSet()?{from:state.from,to:state.to}:null))}catch(_){}
+  syncSlot(); render();
+}
+$("from").onchange=e=>setSlot("from",e.target.value);
+$("to").onchange=e=>setSlot("to",e.target.value);
+$("clearSlot").onclick=()=>{state.from=state.to=null; try{localStorage.removeItem("sendcast.slot")}catch(_){}; syncSlot(); render();};
+syncSlot();
 $("count").textContent=CRAGS.length;
 $("radius").value=state.radius; $("radiusOut").textContent=state.radius+" mi";
 $("radius").oninput=e=>{state.radius=+e.target.value; $("radiusOut").textContent=state.radius+" mi"; try{localStorage.setItem("sendcast.radius",state.radius)}catch(_){}; render();};
