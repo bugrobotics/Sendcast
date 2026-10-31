@@ -69,6 +69,53 @@ input[type=range]{accent-color:var(--accent);width:160px}
 .slot .to{color:var(--muted);font-size:13px}
 .hint{font-size:12px;color:var(--muted)}
 button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
+.leaflet-container{overflow:hidden;-webkit-tap-highlight-color:transparent;font-family:var(--body);font-size:12px}
+.leaflet-container img{max-width:none!important;max-height:none!important}
+.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow{user-select:none;-webkit-user-drag:none}
+.leaflet-tile{visibility:hidden}.leaflet-tile-loaded{visibility:inherit}
+.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}.leaflet-shadow-pane{z-index:500}.leaflet-marker-pane{z-index:600}.leaflet-tooltip-pane{z-index:650}.leaflet-popup-pane{z-index:700}
+.leaflet-map-pane canvas{z-index:100}.leaflet-map-pane svg{z-index:200}
+.leaflet-pane>svg path,.leaflet-tile-container{pointer-events:none}
+.leaflet-pane>svg path.leaflet-interactive{pointer-events:auto}
+.leaflet-zoom-animated{transform-origin:0 0}
+.leaflet-zoom-anim .leaflet-zoom-animated{transition:transform .25s cubic-bezier(0,0,.25,1)}
+.leaflet-zoom-anim .leaflet-zoom-hide{visibility:hidden}
+.leaflet-interactive{cursor:pointer}.leaflet-grab{cursor:grab}.leaflet-dragging .leaflet-grab{cursor:grabbing}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom{touch-action:none}
+.leaflet-control{position:relative;z-index:800;pointer-events:auto;float:left;clear:both}
+.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
+.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}
+.leaflet-right .leaflet-control{float:right}
+.leaflet-top .leaflet-control{margin-top:10px}.leaflet-bottom .leaflet-control{margin-bottom:0}.leaflet-left .leaflet-control{margin-left:10px}.leaflet-right .leaflet-control{margin-right:0}
+.leaflet-bar{border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.leaflet-bar a{display:block;width:30px;height:30px;line-height:30px;text-align:center;text-decoration:none;font-size:18px;background:var(--surface);color:var(--fg)}
+.leaflet-bar a+a{border-top:1px solid var(--line)}
+.leaflet-bar a:hover{background:var(--bg)}
+.leaflet-control-attribution{background:color-mix(in srgb,var(--surface) 85%,transparent);padding:0 6px;font-size:10px;color:var(--muted)}
+.leaflet-control-attribution a{color:var(--muted)}
+.leaflet-popup{position:absolute;text-align:left;margin-bottom:18px}
+.leaflet-popup-content-wrapper{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;box-shadow:0 3px 14px rgba(0,0,0,.18)}
+.leaflet-popup-content{margin:10px 14px;line-height:1.4;font-size:13px}
+.leaflet-popup-tip-container{width:40px;height:20px;position:absolute;left:50%;margin-top:-1px;margin-left:-20px;overflow:hidden;pointer-events:none}
+.leaflet-popup-tip{width:17px;height:17px;margin:-10px auto 0;transform:rotate(45deg);background:var(--surface);border:1px solid var(--line)}
+.leaflet-popup-close-button{position:absolute;top:2px;right:4px;font-size:18px;text-decoration:none;color:var(--muted)}
+.leaflet-tooltip{position:absolute;pointer-events:none;white-space:nowrap}
+.leaflet-fade-anim .leaflet-popup{opacity:0;transition:opacity .2s linear}.leaflet-fade-anim .leaflet-map-pane .leaflet-popup{opacity:1}
+.mapwrap{display:grid;gap:8px}
+.maphead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.maphead .hint{flex:1;min-width:0}
+#map{height:min(460px,62vh);border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.maplab{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-family:var(--body);font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.maplab.top{font-weight:600;border-color:var(--c);box-shadow:0 0 0 1px var(--c)}
+.maplab b{color:var(--c);font-family:var(--mono)}
+.townlab{background:none;border:0;box-shadow:none;color:var(--muted);font-size:11px;font-weight:500}
+.pop b{display:block;font-size:14px}
+.pop .s{font-family:var(--mono);color:var(--c);font-weight:600}
+.pop button{margin-top:6px;font-size:12px;padding:4px 8px}
+.row.flash{animation:flash 1.6s ease-out}
+@keyframes flash{from{background:color-mix(in srgb,var(--accent) 22%,transparent)}to{background:transparent}}
+@media (prefers-reduced-motion:reduce){.row.flash{animation:none}}
 .hours{grid-column:1/-1;margin-top:2px}
 .hours summary{cursor:pointer;font-size:13px;color:var(--accent);font-weight:500;list-style:none;display:inline-flex;gap:6px;align-items:center}
 .hours summary::-webkit-details-marker{display:none}
@@ -120,7 +167,7 @@ button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-de
 <div class="wrap">
   <header>
     <h1>Front Range Sendcast</h1>
-    <p class="sub">Where the rock is best within your range today, across <span id="count">all</span> Colorado-area crags. Every hour gets a score from friction temperature, sun on the rock, humidity, wind and rain, and whether the rock has dried since the last storm. The day's score is the best three daylight hours, or your chosen time slot when you set one.</p>
+    <p class="sub">Where the rock is best within your range today, across <span id="count">all</span> Colorado-area crags. Every hour gets a score from friction temperature, humidity (higher is worse), sun on the rock, wind and rain, and whether the rock has dried since the last storm. The day's score is the best three daylight hours, or your chosen time slot when you set one.</p>
   </header>
 
   <section class="controls" aria-label="Search settings">
@@ -176,11 +223,16 @@ button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-de
 
   <p class="notice" id="notice" hidden></p>
   <section class="pick" id="pick" aria-live="polite"></section>
+  <section class="mapwrap" id="mapwrap" aria-label="Map of areas in range">
+    <div class="maphead"><span class="label">Map</span><span class="hint" id="mapnote">Circle shows your range. Dots are colored by score; the top five are numbered.</span><button type="button" class="link" id="mapToggle">Hide map</button></div>
+    <div id="map"></div>
+  </section>
   <section class="list" id="list" aria-label="Crags ranked by conditions"></section>
 
   <p class="foot">Hourly forecasts from Open-Meteo, requested at each crag's own elevation (US runs use the ~3 km HRRR blend). Drive times and road miles come from the OSRM router on OpenStreetMap roads. They don't include traffic or the last stretch on dirt roads, and the radius filters by road miles. Area list, coordinates and style tags come from Mountain Project, 8a.nu and climber forums; names link to each area's Mountain Project page. Coordinates are approximate; always check access, closures and raptor seasons before you go.</p>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 // One entry per crag cluster. styles lists what the area is known for, most prominent first.
 const CRAGS = /*CRAGDATA*/[{"name":"Fremont Canyon","area":"Alcova, WY","lat":42.4648,"lon":-106.828,"elev":5500,"rock":"granite","aspect":"mixed","styles":["trad","sport"],"access":"","mp":"https://mountainproject.com/area/105825913/fremont-canyon"},
@@ -401,11 +453,12 @@ function hourScore(c,w,h,wet,T){
   let feel = w.t[h] + sun*(SUN_GAIN[c.aspect]??5);
   if (w.ws[h]>8) feel -= (w.ws[h]-8)*0.35;               // wind chill on the rock and your fingers
   const tS = feel<T.ok0 ? lerp(feel,T.lo,T.ok0,0,1) : feel<=T.ok1 ? 1 : lerp(feel,T.ok1,T.hi,1,0);
-  const hS = lerp(w.rh[h],30,90,1,0.3);
+  // Humidity: dry air = sticky rubber and dry skin; damp air = greasy holds. ≤25% is ideal, 90%+ is near-unclimbable friction.
+  const hS = lerp(w.rh[h],25,90,1,0);
   let wS = w.ws[h]<=8 ? 1 : lerp(w.ws[h],8,30,1,0.1);
   if ((w.wg[h]||0)>35) wS*=0.75;
   // Multiplicative: one bad factor drags the hour down, like it does at the crag.
-  const base = Math.pow(tS,0.8) * (0.7+0.3*hS) * (0.55+0.45*wS);
+  const base = Math.pow(tS,0.8) * (0.4+0.6*hS) * (0.55+0.45*wS);
   const rainNow = (w.p[h]||0)>0.01 ? 0.05 : 1;
   const prob = lerp(w.pp[h]??0, 40, 90, 1, 0.55);
   const wetM = 1 - 0.92*clamp(wet[h]/0.08);
@@ -449,6 +502,9 @@ function dayResult(c,j,style,d){
   else if (feel>=T.ok0 && feel<=T.ok1) notes.push("friction-range temps");
   const gust=Math.max(...win.map(h=>w.wg[h]||0));
   if (gust>30) notes.push(`gusts to ${Math.round(gust)} mph`);
+  const rhAvg=avg(h=>w.rh[h]);
+  if (rhAvg>=70) notes.push(`humid (${Math.round(rhAvg)}%), so expect greasy holds`);
+  else if (rhAvg<=30 && feel>=T.ok0-4) notes.push(`dry air (${Math.round(rhAvg)}% humidity), good friction`);
   if (slotSet() && win.some(h=>!w.day[h])) notes.push("part of your slot is after dark; bring a headlamp");
   const slotRain=win.reduce((a,h)=>a+(w.p[h]||0),0);
   if (slotSet() && slotRain>0.01) notes.unshift(`rain during your slot (${slotRain.toFixed(2)}")`);
@@ -607,7 +663,7 @@ function render(){
   const when=dayLabel(state.day).toLowerCase();
   if(!rows.length){
     $("pick").innerHTML=`<p>No ${STYLE_NAME[state.style]} areas within ${state.radius} mi of ${esc(state.origin.label)}. Widen the radius to see options.</p>`;
-    $("list").innerHTML=""; return;
+    $("list").innerHTML=""; drawMap([]); return;
   }
   const top=rows[0], [rk,rl]=rating(top.s);
   $("pick").innerHTML=`<div class="big r-${rk}" style="color:var(--c)">${top.s}</div>
@@ -615,7 +671,7 @@ function render(){
     <h2>${nameLink(top.c)}</h2><p>${away(top)} · ${rl} ${slotSet()?"for":"from"} ${winLabel(top)} · ${Math.round(top.temp)}°F · ${esc(top.notes[0]||"solid all-round conditions")}</p></div>`;
   $("list").innerHTML=rows.map((r,n)=>{
     const [k,l]=rating(r.s);
-    return `<article class="row">
+    return `<article class="row" id="row-${r.j}">
       <div class="rank">${String(n+1).padStart(2,"0")}</div>
       <div><div class="name">${nameLink(r.c)}</div>
         <div class="meta">${esc(r.c.area)} · ${away(r)} · ${r.c.elev.toLocaleString()} ft</div>
@@ -631,6 +687,7 @@ function render(){
       <div class="score r-${k}"><b>${r.s}</b><span class="chip">${l}</span></div>
       ${strip(r.c,r.j,style,r)}
     </article>`;}).join("");
+  drawMap(rows);
   document.querySelectorAll("details.hours").forEach(el=>{
     el.addEventListener("toggle",()=>{const j=+el.id.slice(4); if(el.open){openRows.add(j); drawChart(el.querySelector(".chart"));} else openRows.delete(j);});
     if(el.open) drawChart(el.querySelector(".chart"));
@@ -641,6 +698,53 @@ function nameLink(c){return c.mp?`<a href="${esc(c.mp)}" target="_blank" rel="no
 function hm(m){m=Math.round(m);return m<60?m+" min":Math.floor(m/60)+" h "+String(m%60).padStart(2,"0")+" min"}
 function away(r){return r.t!=null?`${hm(r.t)} drive (${Math.round(r.d)} road mi)`:`${Math.round(r.d)} mi straight-line`}
 function esc(s){return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}
+
+// ---------- map ----------
+const map = {m:null, layer:null, fitKey:"", fallback:false, hidden:false};
+try{ map.hidden = localStorage.getItem("sendcast.map")==="hidden"; }catch(e){}
+const darkTheme=()=>{const t=document.documentElement.dataset.theme; return t? t==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;};
+const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function initMap(){
+  if(map.m || typeof L==="undefined" || map.hidden) return !!map.m;
+  map.m=L.map("map",{scrollWheelZoom:false, zoomSnap:0.25, attributionControl:true}).setView([39.4,-105.6],7);
+  const tiles=L.tileLayer(`https://{s}.basemaps.cartocdn.com/${darkTheme()?"dark_all":"light_all"}/{z}/{x}/{y}{r}.png`,
+    {subdomains:"abcd", maxZoom:15, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'}).addTo(map.m);
+  tiles.once("tileerror",()=>{ if(!map.fallback){ map.fallback=true; drawFallback(); }});
+  map.m.on("click",()=>map.m.scrollWheelZoom.enable());
+  map.layer=L.layerGroup().addTo(map.m);
+  return true;
+}
+// When the basemap can't load (offline / locked-down viewer), draw state lines and towns so the map still reads.
+function drawFallback(){
+  const st={color:cssVar("--muted"),weight:1.5,opacity:.6,interactive:false,fill:false};
+  L.polygon([[41,-109.05],[41,-102.05],[37,-102.05],[37,-109.05]],st).addTo(map.m);
+  [[[41,-111.05],[41,-109.05]],[[41,-104.05],[43,-104.05]],[[37,-109.05],[36,-109.05]],[[37,-103],[36,-103]]].forEach(l=>L.polyline(l,st).addTo(map.m));
+  [["Denver",39.739,-104.99],["Boulder",40.015,-105.27],["Fort Collins",40.585,-105.084],["Colorado Springs",38.834,-104.821],["Pueblo",38.254,-104.609],["Grand Junction",39.064,-108.55],["Glenwood Springs",39.55,-107.325],["Gunnison",38.545,-106.925],["Durango",37.275,-107.88],["Alamosa",37.469,-105.87],["Taos",36.407,-105.573],["Laramie",41.311,-105.591],["Steamboat",40.485,-106.832],["Salida",38.535,-105.999]]
+    .forEach(([n,la,lo])=>L.marker([la,lo],{opacity:0,interactive:false,icon:L.divIcon({className:"",html:"",iconSize:[0,0]})}).bindTooltip(n,{permanent:true,direction:"center",className:"townlab"}).addTo(map.m));
+}
+function drawMap(rows){
+  $("mapwrap").querySelector("#map").hidden=map.hidden; $("mapToggle").textContent=map.hidden?"Show map":"Hide map";
+  if(map.hidden) return;
+  if(!initMap()){ $("mapnote").textContent="The map couldn't load in this view."; return; }
+  const o=state.origin; map.layer.clearLayers();
+  const ring=L.circle([o.lat,o.lon],{radius:state.radius*1609.34, color:cssVar("--accent"), weight:1.5, dashArray:"6 5", fillColor:cssVar("--accent"), fillOpacity:.05, interactive:false}).addTo(map.layer);
+  L.circleMarker([o.lat,o.lon],{radius:6,color:cssVar("--bg"),weight:2,fillColor:cssVar("--fg"),fillOpacity:1}).bindTooltip(o.label==="you"?"You":o.label,{direction:"top",offset:[0,-6]}).addTo(map.layer);
+  const inRange=new Set(rows.map(r=>r.j));
+  // out-of-range areas as faint context
+  CRAGS.forEach((c,j)=>{ if(!inRange.has(j)) L.circleMarker([c.lat,c.lon],{radius:3,stroke:false,fillColor:cssVar("--muted"),fillOpacity:.35,interactive:false}).addTo(map.layer); });
+  // in range: worst first so the best sit on top
+  [...rows].reverse().forEach(r=>{
+    const rank=rows.indexOf(r)+1, [k,l]=rating(r.s), col=cssVar("--"+k), top=rank<=5;
+    const mk=L.circleMarker([r.c.lat,r.c.lon],{radius:rank===1?11:top?8:6, color:rank===1?cssVar("--fg"):cssVar("--bg"), weight:rank===1?3:1.5, fillColor:col, fillOpacity:.95}).addTo(map.layer);
+    if(top) mk.bindTooltip(`<b>${rank}</b> ${esc(r.c.name)} <b>${r.s}</b>`,{permanent:true,direction:"right",offset:[rank===1?12:9,0],className:`maplab r-${k}${rank===1?" top":""}`});
+    mk.bindPopup(`<div class="pop r-${k}"><b>${rank}. ${esc(r.c.name)}</b><span class="s">${r.s} ${l}</span> · ${winLabel(r)}<br>${away(r)}<br>${r.c.styles.join(", ")} · ${r.c.rock}<br><button type="button" data-j="${r.j}">Show in list</button></div>`);
+    mk.on("popupopen",e=>{const b=e.popup.getElement().querySelector("button"); b.onclick=()=>{map.m.closePopup(); const row=$("row-"+r.j), d=$("hrs-"+r.j); if(d&&!d.open) d.open=true; row.scrollIntoView({behavior:"smooth",block:"start"}); row.classList.remove("flash"); void row.offsetWidth; row.classList.add("flash");};});
+  });
+  const key=o.lat+","+o.lon+","+state.radius;
+  if(key!==map.fitKey){ map.fitKey=key; map.m.fitBounds(ring.getBounds(),{padding:[16,16]}); }
+  const top=rows[0]; $("mapnote").textContent= top ? `Circle shows your ${state.radius}-mile range (straight-line; the list filters by road miles). #1 is ${top.c.name}.` : `No areas in range. Widen the radius.`;
+}
+$("mapToggle").onclick=()=>{ map.hidden=!map.hidden; try{localStorage.setItem("sendcast.map",map.hidden?"hidden":"shown")}catch(_){}; render(); if(map.m) setTimeout(()=>map.m.invalidateSize(),0); };
 
 // ---------- controls ----------
 function renderStyles(){ document.querySelectorAll("#styles button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.st===state.style))); }
