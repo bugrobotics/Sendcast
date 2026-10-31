@@ -87,8 +87,8 @@ button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-de
 .chart .daylab{fill:var(--muted);font-family:var(--body);font-size:12px}
 .chart .daylab.on{fill:var(--fg);font-weight:600}
 .chart .win{fill:none;stroke:var(--fg);stroke-width:1;stroke-dasharray:3 3;opacity:.55}
-.chart .area{fill:var(--accent);opacity:.14}
-.chart .line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .area{opacity:.16}
+.chart .line{fill:none;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
 .chart .rain{fill:var(--rain);opacity:.8}
 .chart .grid{stroke:var(--line);stroke-width:1}
 .chart .freeze{stroke:var(--rain);stroke-width:1;stroke-dasharray:4 3;opacity:.7}
@@ -569,7 +569,10 @@ function drawChart(box){
   g+=`<rect class="win" x="${x(r.win[0])}" y="${T}" width="${x(r.win[r.win.length-1]+1)-x(r.win[0])}" height="${SH}"/>`;
   // score area + line
   let pts=""; for(let h=H0;h<=H1;h++) pts+=`${x(h).toFixed(1)},${ys(hs[h].s).toFixed(1)} `;
-  g+=`<polygon class="area" points="${x(H0)},${ys(0)} ${pts}${x(H1)},${ys(0)}"/><polyline class="line" points="${pts}"/>`;
+  // Grade-colored stroke: a vertical gradient with hard stops at the rating thresholds, so the line's color is its grade.
+  const gid="grade"+j, stop=(v,k)=>`<stop offset="${(100-v)/100}" style="stop-color:var(--${k})"/>`;
+  g=`<defs><linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="0" y1="${ys(100)}" x2="0" y2="${ys(0)}">${stop(100,"prime")+stop(80,"prime")+stop(80,"good")+stop(62,"good")+stop(62,"fair")+stop(40,"fair")+stop(40,"poor")+stop(0,"poor")}</linearGradient></defs>`+g;
+  g+=`<polygon class="area" style="fill:url(#${gid})" points="${x(H0)},${ys(0)} ${pts}${x(H1)},${ys(0)}"/><polyline class="line" style="stroke:url(#${gid})" points="${pts}"/>`;
   // rain ticks along the score baseline
   for(let h=H0;h<=H1;h++) if((w.p[h]||0)>0.01) g+=`<rect class="rain" x="${x(h)}" y="${ys(0)-Math.min(18,4+w.p[h]*120)}" width="${Math.max(2,x(h+1)-x(h)-1)}" height="${Math.min(18,4+w.p[h]*120)}"/>`;
   // temperature panel
@@ -587,7 +590,7 @@ function drawChart(box){
     const h=Math.max(H0,Math.min(H1,Math.round(H0+(px-L)/(W-L-R)*(H1-H0)))), sc=hs[h].s, [,lab]=rating(sc);
     cross.setAttribute("visibility","visible");
     cross.querySelector(".xline").setAttribute("x1",x(h)); cross.querySelector(".xline").setAttribute("x2",x(h));
-    const dot=cross.querySelector(".dot"); dot.setAttribute("cx",x(h)); dot.setAttribute("cy",ys(sc));
+    const dot=cross.querySelector(".dot"); dot.setAttribute("cx",x(h)); dot.setAttribute("cy",ys(sc)); dot.style.fill=`var(--${rating(sc)[0]})`;
     const td=cross.querySelector(".tdot"); td.setAttribute("cx",x(h)); td.setAttribute("cy",yt(w.t[h]));
     const p=w.p[h]||0;
     tip.innerHTML=`<b>${hourLabel(h)}</b><span>Score ${sc} · ${lab}</span><span>${Math.round(w.t[h])}°F · ${Math.round(w.rh[h])}% RH</span><span>Wind ${Math.round(w.ws[h])}, gusts ${Math.round(w.wg[h]||0)} mph</span>${p>0.005?`<span>Rain ${p.toFixed(2)}"</span>`:""}${hs[h].wet>0.03?`<span>Rock likely wet</span>`:""}`;
