@@ -182,7 +182,7 @@ button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-de
   <section class="pick" id="pick" aria-live="polite"></section>
   <section class="list" id="list" aria-label="Crags ranked by conditions"></section>
 
-  <p class="foot"><strong>How scoring works.</strong> Friction temperature (cooler for bouldering, warmer for roped climbing); humidity scored as a curve, best around 20–55%, with very dry cold air and anything above about 60% penalized, since fingertip friction peaks at moderate skin moisture (<a href="https://pubmed.ncbi.nlm.nih.gov/19906876" target="_blank" rel="noopener">André et al. 2010</a>; <a href="https://research.polyu.edu.hk/en/publications/study-of-human-fingertip-friction-with-controlled-relative-humidi/" target="_blank" rel="noopener">Li et al. 2019</a>) while damp air greases holds (<a href="https://gripped.com/?p=38685" target="_blank" rel="noopener">Gripped</a>); a light 4–12 mph breeze scored best because it evaporates sweat and offsets humidity; sun warms rock by aspect and time of day, which helps when cold and hurts when warm, while cloud keeps it cool (<a href="https://info.pyb.co.uk/blog/interpreting-the-weather-forecast-for-rock-climbing" target="_blank" rel="noopener">Plas y Brenin</a>); a penalty when shaded air nears its dew point; and rock wetness after rain by rock type.</p>
+  <p class="foot"><strong>How scoring works.</strong> Friction temperature (cooler for bouldering, warmer for roped climbing); humidity scored as a curve, best around 20–55%, with very dry cold air and anything above about 60% penalized, since fingertip friction peaks at moderate skin moisture (<a href="https://pubmed.ncbi.nlm.nih.gov/19906876" target="_blank" rel="noopener">André et al. 2010</a>; <a href="https://research.polyu.edu.hk/en/publications/study-of-human-fingertip-friction-with-controlled-relative-humidi/" target="_blank" rel="noopener">Li et al. 2019</a>) while damp air greases holds (<a href="https://gripped.com/?p=38685" target="_blank" rel="noopener">Gripped</a>); a light 4–12 mph breeze scored best because it evaporates sweat and offsets humidity; sun warms rock 20–30°F above air by aspect and time of day, which helps when cold, while direct sun on holds is penalized whenever the air isn't cold because it makes skin sweat and holds greasy; cloud and shade keep rock cool (<a href="https://info.pyb.co.uk/blog/interpreting-the-weather-forecast-for-rock-climbing" target="_blank" rel="noopener">Plas y Brenin</a>); a penalty when shaded air nears its dew point; and rock wetness after rain by rock type.</p>
   <p class="foot">Hourly forecasts from Open-Meteo, requested at each crag's own elevation (US runs use the ~3 km HRRR blend). Drive times and road miles come from the OSRM router on OpenStreetMap roads. They don't include traffic or the last stretch on dirt roads, and the radius filters by road miles. Area list, coordinates and style tags come from Mountain Project, 8a.nu and climber forums; names link to each area's Mountain Project page. Coordinates are approximate; always check access, closures and raptor seasons before you go.</p>
 </div>
 
@@ -348,7 +348,8 @@ const STYLE_NAME = {all:"climbing", boulder:"bouldering", sport:"sport climbing"
 // °F the rock surface gains over air temperature in full sun. Sunlit rock runs well above air temperature;
 // east faces get morning sun, west faces afternoon sun.
 function sunGain(aspect,hr){
-  switch(aspect){ case "S": return 18; case "E": return hr<13?15:3; case "W": return hr>=12?15:3; case "N": return 2; default: return 8; }
+  // Sunlit rock commonly runs 20–30°F above air temperature.
+  switch(aspect){ case "S": return 24; case "E": return hr<13?20:4; case "W": return hr>=12?20:4; case "N": return 3; default: return 14; }
 }
 const PAST = 2, DAYS = 5, WINDOW = 3;
 
@@ -424,14 +425,18 @@ function hourScore(c,w,h,wet,T){
   // Wind is also a hump: dead calm lets sweat and humidity sit on the holds, 4–12 mph is ideal, strong wind chills and gusts.
   let wS = ws<3 ? ((feel>T.ok1-5||rh>55) ? 0.85 : 0.97) : ws<=12 ? 1 : lerp(ws,12,30,1,0.15);
   if ((w.wg[h]||0)>35) wS*=0.75;
+  // Direct sun on the holds: even in cool air, sunlit rock and skin warm up, hands sweat and holds feel greasy.
+  // Only cold air (below the style's friction window) is exempt; there the sun's warmth is welcome.
+  const aspectSun = c.aspect==="N" ? 0.2 : c.aspect==="E" ? (hr<13?1:0.25) : c.aspect==="W" ? (hr>=12?1:0.25) : 1;
+  const glare = 1 - 0.38*sun*aspectSun*clamp((t-(T.ok0-4))/14);
   // Condensation: when air sits within a few degrees of its dew point and the rock is unlit, a film of moisture forms.
   const spread = t - td, cond = (spread<5 && sun<0.25) ? lerp(spread,0,5,0.45,1) : 1;
   // Multiplicative: one bad factor drags the hour down, like it does at the crag.
-  const base = Math.pow(tS,0.8) * (0.35+0.65*hS) * (0.55+0.45*wS) * cond;
+  const base = Math.pow(tS,0.8) * (0.35+0.65*hS) * (0.55+0.45*wS) * cond * glare;
   const rainNow = (w.p[h]||0)>0.01 ? 0.05 : 1;
   const prob = lerp(w.pp[h]??0, 40, 90, 1, 0.55);
   const wetM = 1 - 0.92*clamp(wet[h]/0.08);
-  return {s:Math.round(100*clamp(base*rainNow*prob*wetM)), feel, wet:wet[h], sun, cond, spread};
+  return {s:Math.round(100*clamp(base*rainNow*prob*wetM)), feel, wet:wet[h], sun, cond, spread, glare};
 }
 // Score every hour of a crag for one style, cached.
 const hourCache = new Map();
@@ -478,6 +483,8 @@ function dayResult(c,j,style,d){
   if (condMin<0.85) notes.push("air near its dew point; shaded rock may feel damp");
   if (wsAvg>=4 && wsAvg<=12 && rhAvg<70) notes.push("light breeze keeps holds dry");
   else if (wsAvg<3 && feel>T.ok1-5) notes.push("still air; expect sweaty hands");
+  const glareMin=Math.min(...win.map(h=>hs[h].glare));
+  if (glareMin<0.8) notes.push("direct sun will make holds greasy; look for shade or go early or late");
   if (feel>T.ok1-3 && sunAvg<0.35 && win.every(h=>w.day[h])) notes.push("cloud cover keeps the rock cool");
   else if (feel<T.ok0 && sunAvg>0.6 && c.aspect!=="N") notes.push("sun is warming the rock");
   if (slotSet() && win.some(h=>!w.day[h])) notes.push("part of your slot is after dark; bring a headlamp");
