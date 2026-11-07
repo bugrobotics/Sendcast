@@ -363,7 +363,8 @@ const FACE_AZ={N:0,E:90,S:180,W:270};
 // swings behind it or the sky clouds over. Mixed boulder fields: sun on open, upward-facing rock (tops, slabs, aretes).
 function sunOnRock(c,w,h){
   const p=w.sun[h]; if(!p||p.el<=1) return 0;
-  const dirH=w.dr? (w.dr[h]||0) : (w.sw[h]||0)*0.75;      // direct beam on a horizontal surface, W/m²
+  // Forecast radiation is the mean of the hour BEFORE its timestamp; slot h covers h:00–h+1:00, so read stamp h+1.
+  const k=Math.min(h+1,(w.dr||w.sw).length-1), dirH=w.dr? (w.dr[k]||0) : (w.sw[k]||0)*0.75;   // direct beam on a horizontal surface, W/m²
   if(FACE_AZ[c.aspect]==null) return clamp(dirH/650);
   const dni=Math.min(1000, dirH/Math.sin(p.el*Math.PI/180));
   const inc=Math.cos(p.el*Math.PI/180)*Math.cos((p.az-FACE_AZ[c.aspect])*Math.PI/180);
@@ -372,7 +373,7 @@ function sunOnRock(c,w,h){
 function addSun(wx){                                          // precompute sun position per crag and hour
   wx.byCrag.forEach((w,j)=>{ const c=CRAGS[j];
     w.sun=wx.times.map(ts=>{ const [y,mo,d,hr]=[+ts.slice(0,4),+ts.slice(5,7),+ts.slice(8,10),+ts.slice(11,13)];
-      return solarPos(c.lat,c.lon,Date.UTC(y,mo-1,d,hr)-wx.offset*1000-1800e3); }); });  // mid-hour: radiation is the preceding hour's mean
+      return solarPos(c.lat,c.lon,Date.UTC(y,mo-1,d,hr)-wx.offset*1000+1800e3); }); });  // middle of slot h:00–h+1:00
   return wx;
 }
 const PAST = 2, DAYS = 5, WINDOW = 3;
@@ -436,7 +437,7 @@ function hourScore(c,w,h,wet,T){
   const hr = Number(state.wx.times[h].slice(11,13));
   // Sun vs cloud: sunlight heats the rock (good when cold, bad when warm); cloud keeps it near air temperature.
   const sun = w.day[h] ? sunOnRock(c,w,h) : 0;
-  const diffuse = w.df ? clamp((w.df[h]||0)/250) : 0;
+  const diffuse = w.df ? clamp((w.df[Math.min(h+1,w.df.length-1)]||0)/250) : 0;
   const t = w.t[h], rh = w.rh[h], ws = w.ws[h]||0, td = w.td ? w.td[h] : t-(100-rh)/2.8;
   // Sunlit rock commonly runs 20–30°F above air temperature; bright overcast adds a little.
   let feel = t + sun*24 + diffuse*3;
@@ -546,9 +547,12 @@ async function loadChunk(list){
 }
 // Example conditions for views that can't reach the forecast service. Deterministic, elevation-aware, clearly labelled.
 function sampleData(){
-  const start=new Date(); start.setHours(0,0,0,0); start.setDate(start.getDate()-PAST);
-  const N=(PAST+DAYS)*24, times=[...Array(N)].map((_,h)=>{const d=new Date(start.getTime()+h*3600e3);
-    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+"T"+String(d.getHours()).padStart(2,"0")+":00";});
+  // Build the example timeline in Denver time, like the live forecast, whatever the viewer's own time zone.
+  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Denver",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const tzName=new Intl.DateTimeFormat("en-US",{timeZone:"America/Denver",timeZoneName:"shortOffset"}).formatToParts(new Date()).find(x=>x.type==="timeZoneName").value;
+  const offH=Number((tzName.match(/GMT([+-]\d+)/)||[0,-7])[1]);
+  const base=Date.UTC(+today.slice(0,4),+today.slice(5,7)-1,+today.slice(8,10))-PAST*864e5;
+  const N=(PAST+DAYS)*24, times=[...Array(N)].map((_,h)=>new Date(base+h*3600e3).toISOString().slice(0,13)+":00");
   const warm=[0,-6,-2,3,-4,1,4], cloudy=[.3,.8,.4,.15,.55,.2,.35], windy=[9,14,8,7,18,11,9];
   const byCrag=CRAGS.map((c,j)=>{
     const lapse=(c.elev-5300)/1000*3.6, jit=k=>((j*7+k*13)%5)-2, wetter=c.elev>8000?1.4:1;
@@ -571,7 +575,7 @@ function sampleData(){
     }
     return o;
   });
-  return addSun({times, offset:-new Date().getTimezoneOffset()*60, byCrag});
+  return addSun({times, offset:offH*3600, byCrag});
 }
 
 // ---------- render ----------
