@@ -72,6 +72,26 @@ input[type=range]{accent-color:var(--accent);width:160px}
 .slot .to{color:var(--muted);font-size:13px}
 .hint{font-size:12px;color:var(--muted)}
 button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.weights{border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.weights summary{cursor:pointer;padding:12px 16px;display:flex;gap:12px;align-items:baseline;list-style:none;font-weight:600}
+.weights summary::-webkit-details-marker{display:none}
+.weights summary::before{content:"▸";font-size:11px;transition:transform .15s}
+.weights[open] summary::before{transform:rotate(90deg)}
+.weights summary .hint{font-weight:400}
+.weights summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wbody{display:grid;gap:16px;padding:0 16px 16px}
+.whint{margin:0;font-size:13px;color:var(--muted);max-width:70ch}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px 24px}
+.wrow{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name out" "range range" "help help";gap:2px 10px;align-items:center}
+.wrow .wname{grid-area:name;font-size:14px;font-weight:500}
+.wrow output{grid-area:out;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.wrow input{grid-area:range;width:100%;accent-color:var(--accent)}
+.wrow .whelp{grid-area:help;font-size:12px;color:var(--muted)}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 24px;padding-top:12px;border-top:1px solid var(--line)}
+.rrow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
+.rrow .num{font-family:var(--mono);font-size:13px;color:var(--muted);white-space:nowrap}
+.rrow input{width:4.5em;font:inherit;font-family:var(--mono);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+#wreset{justify-self:start}
 .hours{grid-column:1/-1;margin-top:2px}
 .hours summary{cursor:pointer;font-size:13px;color:var(--accent);font-weight:500;list-style:none;display:inline-flex;gap:6px;align-items:center}
 .hours summary::-webkit-details-marker{display:none}
@@ -177,6 +197,16 @@ button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-de
       <div class="days" id="days" role="group" aria-label="Forecast day"></div>
     </div>
   </section>
+
+  <details class="weights" id="weights">
+    <summary><span>Scoring weights</span><span class="hint" id="wstate">Using defaults</span></summary>
+    <div class="wbody">
+      <p class="whint">Each weight is the most that factor can lower an hour's score. 0% ignores it; 100% lets it zero the hour out. Changes re-rank instantly and are saved in this browser.</p>
+      <div class="wgrid" id="wgrid"></div>
+      <div class="rgrid" id="rgrid"></div>
+      <button type="button" id="wreset">Reset to defaults</button>
+    </div>
+  </details>
 
   <p class="notice" id="notice" hidden></p>
   <section class="pick" id="pick" aria-live="polite"></section>
@@ -343,7 +373,40 @@ const FRAGILE = new Set(["sandstone","tuff","conglomerate"]);
 // Friction sweet spot (°F, "feels on the rock") by discipline: boulderers want it colder than roped climbers.
 // Skin grips best cool (fingertip friction research points to roughly 32–41°F skin-on-rock); roped climbers need warmer
 // hands over long pitches and shoe rubber smears best warm, so their window sits higher.
-const TEMP = {boulder:{lo:22,ok0:36,ok1:55,hi:78}, sport:{lo:32,ok0:46,ok1:65,hi:86}, trad:{lo:32,ok0:46,ok1:65,hi:88}};
+// ---------- user-adjustable weights ----------
+// Each weight is the most that factor can pull an hour's score down (0 = ignored, 1 = can zero it out).
+const WEIGHT_DEFS = [
+  {k:"temp",  label:"Temperature",        def:1.00, help:"Rock and skin temperature outside the ideal range below"},
+  {k:"hum",   label:"Humidity",           def:0.65, help:"Greasy holds in damp air; tips go glassy in very dry, cold air"},
+  {k:"wind",  label:"Wind",               def:0.45, help:"Strong wind and gusts; dead calm when it's warm or humid"},
+  {k:"sun",   label:"Sun on holds",       def:0.38, help:"Direct sun on the rock when the air isn't cold"},
+  {k:"dew",   label:"Dew point",          def:0.55, help:"Damp film on shaded rock when air is near its dew point"},
+  {k:"wet",   label:"Wet rock after rain",def:0.92, help:"Rock still drying from earlier rain, slower on sandstone"},
+  {k:"rain",  label:"Rain chance",        def:0.45, help:"Forecast chance of rain in that hour"},
+];
+const RANGE_DEFS = [
+  {k:"bOk0", label:"Bouldering ideal from", def:36, min:15, max:60, unit:"°F"},
+  {k:"bOk1", label:"Bouldering ideal to",   def:55, min:30, max:80, unit:"°F"},
+  {k:"rOk0", label:"Sport & trad ideal from", def:46, min:20, max:70, unit:"°F"},
+  {k:"rOk1", label:"Sport & trad ideal to",   def:65, min:35, max:90, unit:"°F"},
+  {k:"rhMax",label:"Humidity fine up to",   def:55, min:25, max:85, unit:"%"},
+];
+const W = {};
+function loadWeights(){
+  let saved={}; try{ saved=JSON.parse(localStorage.getItem("sendcast.weights")||"{}")||{}; }catch(e){}
+  for(const d of [...WEIGHT_DEFS,...RANGE_DEFS]) W[d.k] = typeof saved[d.k]==="number" ? saved[d.k] : d.def;
+  applyRanges();
+}
+// Temperature windows: ideal range from the settings; scores fall to zero 14°F below and ~22°F above it.
+const TEMP = {};
+function applyRanges(){
+  if(W.bOk1<=W.bOk0) W.bOk1=W.bOk0+1; if(W.rOk1<=W.rOk0) W.rOk1=W.rOk0+1;
+  TEMP.boulder={lo:W.bOk0-14, ok0:W.bOk0, ok1:W.bOk1, hi:W.bOk1+23};
+  TEMP.sport  ={lo:W.rOk0-14, ok0:W.rOk0, ok1:W.rOk1, hi:W.rOk1+21};
+  TEMP.trad   ={lo:W.rOk0-14, ok0:W.rOk0, ok1:W.rOk1, hi:W.rOk1+23};
+}
+const weigh=(wt,f)=>1-wt*(1-f);          // f = factor quality 0..1; wt = how much a bad value can cost
+loadWeights();
 const STYLE_NAME = {all:"climbing", boulder:"bouldering", sport:"sport climbing", trad:"trad climbing"};
 // ---------- sun & shade ----------
 // Solar position (NOAA low-precision algorithm, good to well under a degree): elevation and azimuth (° from north, clockwise).
@@ -445,23 +508,23 @@ function hourScore(c,w,h,wet,T){
   const tS = feel<T.ok0 ? lerp(feel,T.lo,T.ok0,0,1) : feel<=T.ok1 ? 1 : lerp(feel,T.ok1,T.hi,1,0);
   // Humidity is a hump, not a straight line: fingertip friction peaks at moderate skin moisture,
   // very dry air leaves tips "glassy" (worse when cold), and above ~60–70% RH holds start to feel greasy.
-  let hS = rh<20 ? lerp(rh,5,20,0.82,1) : rh<=55 ? 1 : lerp(rh,55,90,1,0);
+  let hS = rh<20 ? lerp(rh,5,20,0.82,1) : rh<=W.rhMax ? 1 : lerp(rh,W.rhMax,Math.max(W.rhMax+5,90),1,0);
   if (rh<25 && t<32) hS *= 0.92;
   // A light breeze evaporates sweat and lowers the moisture you feel at the rock.
-  if (rh>55 && ws>=4 && ws<=15) hS = Math.min(1, hS+0.12);
+  if (rh>W.rhMax && ws>=4 && ws<=15) hS = Math.min(1, hS+0.12);
   // Wind is also a hump: dead calm lets sweat and humidity sit on the holds, 4–12 mph is ideal, strong wind chills and gusts.
-  let wS = ws<3 ? ((feel>T.ok1-5||rh>55) ? 0.85 : 0.97) : ws<=12 ? 1 : lerp(ws,12,30,1,0.15);
+  let wS = ws<3 ? ((feel>T.ok1-5||rh>W.rhMax) ? 0.85 : 0.97) : ws<=12 ? 1 : lerp(ws,12,30,1,0.15);
   if ((w.wg[h]||0)>35) wS*=0.75;
   // Direct sun on the holds: even in cool air, sunlit rock and skin warm up, hands sweat and holds feel greasy.
   // Only cold air (below the style's friction window) is exempt; there the sun's warmth is welcome.
-  const glare = 1 - 0.38*sun*clamp((t-(T.ok0-4))/14);
+  const glare = 1 - W.sun*sun*clamp((t-(T.ok0-4))/14);
   // Condensation: when air sits within a few degrees of its dew point and the rock is unlit, a film of moisture forms.
-  const spread = t - td, cond = (spread<5 && sun<0.25) ? lerp(spread,0,5,0.45,1) : 1;
+  const spread = t - td, cond = (spread<5 && sun<0.25) ? weigh(W.dew, lerp(spread,0,5,0,1)) : 1;
   // Multiplicative: one bad factor drags the hour down, like it does at the crag.
-  const base = Math.pow(tS,0.8) * (0.35+0.65*hS) * (0.55+0.45*wS) * cond * glare;
+  const base = weigh(W.temp,Math.pow(tS,0.8)) * weigh(W.hum,hS) * weigh(W.wind,wS) * cond * glare;
   const rainNow = (w.p[h]||0)>0.01 ? 0.05 : 1;
-  const prob = lerp(w.pp[h]??0, 40, 90, 1, 0.55);
-  const wetM = 1 - 0.92*clamp(wet[h]/0.08);
+  const prob = weigh(W.rain, lerp(w.pp[h]??0, 40, 90, 1, 0));
+  const wetM = 1 - W.wet*clamp(wet[h]/0.08);
   return {s:Math.round(100*clamp(base*rainNow*prob*wetM)), feel, wet:wet[h], sun, cond, spread, glare};
 }
 // Score every hour of a crag for one style, cached.
@@ -714,6 +777,27 @@ function nameLink(c){return c.mp?`<a href="${esc(c.mp)}" target="_blank" rel="no
 function hm(m){m=Math.round(m);return m<60?m+" min":Math.floor(m/60)+" h "+String(m%60).padStart(2,"0")+" min"}
 function away(r){return r.t!=null?`${hm(r.t)} drive (${Math.round(r.d)} road mi)`:`${Math.round(r.d)} mi straight-line`}
 function esc(s){return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}
+
+// ---------- weights panel ----------
+function buildWeights(){
+  const pct=v=>Math.round(v*100)+"%";
+  $("wgrid").innerHTML = WEIGHT_DEFS.map(d=>`<label class="wrow" for="w-${d.k}"><span class="wname">${d.label}</span>
+      <input type="range" id="w-${d.k}" min="0" max="1" step="0.05" value="${W[d.k]}"><output id="wo-${d.k}">${pct(W[d.k])}</output>
+      <span class="whelp">${d.help}</span></label>`).join("");
+  $("rgrid").innerHTML = RANGE_DEFS.map(d=>`<label class="rrow" for="w-${d.k}"><span class="wname">${d.label}</span>
+      <span class="num"><input type="number" id="w-${d.k}" min="${d.min}" max="${d.max}" step="1" value="${W[d.k]}"> ${d.unit}</span></label>`).join("");
+  let t;
+  const apply=()=>{ applyRanges(); hourCache.clear(); try{localStorage.setItem("sendcast.weights",JSON.stringify(W))}catch(_){}; render(); syncWeightsNote(); };
+  WEIGHT_DEFS.forEach(d=>$("w-"+d.k).addEventListener("input",e=>{ W[d.k]=+e.target.value; $("wo-"+d.k).textContent=pct(W[d.k]); clearTimeout(t); t=setTimeout(apply,120); }));
+  RANGE_DEFS.forEach(d=>$("w-"+d.k).addEventListener("change",e=>{ const v=Math.round(+e.target.value); if(!Number.isFinite(v)) return; W[d.k]=clamp(v,d.min,d.max); e.target.value=W[d.k]; apply(); RANGE_DEFS.forEach(x=>$("w-"+x.k).value=W[x.k]); }));
+  $("wreset").onclick=()=>{ for(const d of [...WEIGHT_DEFS,...RANGE_DEFS]) W[d.k]=d.def; try{localStorage.removeItem("sendcast.weights")}catch(_){}; buildWeights(); apply(); };
+  syncWeightsNote();
+}
+function syncWeightsNote(){
+  const changed=[...WEIGHT_DEFS,...RANGE_DEFS].filter(d=>Math.abs(W[d.k]-d.def)>1e-9).length;
+  $("wstate").textContent = changed ? `${changed} setting${changed>1?"s":""} changed from default` : "Using defaults";
+}
+buildWeights();
 
 // ---------- controls ----------
 function renderStyles(){ document.querySelectorAll("#styles button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.st===state.style))); }
