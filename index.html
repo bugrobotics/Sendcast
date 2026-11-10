@@ -212,7 +212,7 @@ button.link{background:none;border:0;padding:4px 2px;color:var(--accent);text-de
   <section class="pick" id="pick" aria-live="polite"></section>
   <section class="list" id="list" aria-label="Crags ranked by conditions"></section>
 
-  <p class="foot"><strong>How scoring works.</strong> Friction temperature (cooler for bouldering, warmer for roped climbing); humidity scored as a curve, best around 20–55%, with very dry cold air and anything above about 60% penalized, since fingertip friction peaks at moderate skin moisture (<a href="https://pubmed.ncbi.nlm.nih.gov/19906876" target="_blank" rel="noopener">André et al. 2010</a>; <a href="https://research.polyu.edu.hk/en/publications/study-of-human-fingertip-friction-with-controlled-relative-humidi/" target="_blank" rel="noopener">Li et al. 2019</a>) while damp air greases holds (<a href="https://gripped.com/?p=38685" target="_blank" rel="noopener">Gripped</a>); a light 4–12 mph breeze scored best because it evaporates sweat and offsets humidity; each wall's sun and shade is computed hour by hour from the sun's position, the wall's direction and the forecast's direct (not diffuse) sunlight; sun warms rock 20–30°F above air, which helps when cold, while direct sun on holds is penalized whenever the air isn't cold because it makes skin sweat and holds greasy; cloud and shade keep rock cool (<a href="https://info.pyb.co.uk/blog/interpreting-the-weather-forecast-for-rock-climbing" target="_blank" rel="noopener">Plas y Brenin</a>); a penalty when shaded air nears its dew point; and rock wetness after rain by rock type.</p>
+  <p class="foot"><strong>How scoring works.</strong> Friction temperature blends rock temperature (air plus sun) with how cold your skin feels (feels-like temperature from wind and dry air), cooler for bouldering and warmer for roped climbing; a cold-hands penalty as feels-like nears freezing; canyon crags lose low-angle sun; humidity scored as a curve, best around 20–55%, with very dry cold air and anything above about 60% penalized, since fingertip friction peaks at moderate skin moisture (<a href="https://pubmed.ncbi.nlm.nih.gov/19906876" target="_blank" rel="noopener">André et al. 2010</a>; <a href="https://research.polyu.edu.hk/en/publications/study-of-human-fingertip-friction-with-controlled-relative-humidi/" target="_blank" rel="noopener">Li et al. 2019</a>) while damp air greases holds (<a href="https://gripped.com/?p=38685" target="_blank" rel="noopener">Gripped</a>); a light 4–12 mph breeze scored best because it evaporates sweat and offsets humidity; each wall's sun and shade is computed hour by hour from the sun's position, the wall's direction and the forecast's direct (not diffuse) sunlight; sun warms rock 20–30°F above air, which helps when cold, while direct sun on holds is penalized whenever the air isn't cold because it makes skin sweat and holds greasy; cloud and shade keep rock cool (<a href="https://info.pyb.co.uk/blog/interpreting-the-weather-forecast-for-rock-climbing" target="_blank" rel="noopener">Plas y Brenin</a>); a penalty when shaded air nears its dew point; and rock wetness after rain by rock type.</p>
   <p class="foot">Hourly forecasts from Open-Meteo, requested at each crag's own elevation (US runs use the ~3 km HRRR blend). Drive times and road miles come from the OSRM router on OpenStreetMap roads. They don't include traffic or the last stretch on dirt roads, and the radius filters by road miles. Area list, coordinates and style tags come from Mountain Project, 8a.nu and climber forums; names link to each area's Mountain Project page. Coordinates are approximate; always check access, closures and raptor seasons before you go.</p>
 </div>
 
@@ -377,6 +377,7 @@ const FRAGILE = new Set(["sandstone","tuff","conglomerate"]);
 // Each weight is the most that factor can pull an hour's score down (0 = ignored, 1 = can zero it out).
 const WEIGHT_DEFS = [
   {k:"temp",  label:"Temperature",        def:1.00, help:"Rock and skin temperature outside the ideal range below"},
+  {k:"cold",  label:"Cold hands",         def:0.55, help:"Feels-like temperature near or below freezing numbs fingers"},
   {k:"hum",   label:"Humidity",           def:0.65, help:"Greasy holds in damp air; tips go glassy in very dry, cold air"},
   {k:"wind",  label:"Wind",               def:0.45, help:"Strong wind and gusts; dead calm when it's warm or humid"},
   {k:"sun",   label:"Sun on holds",       def:0.38, help:"Direct sun on the rock when the air isn't cold"},
@@ -386,7 +387,7 @@ const WEIGHT_DEFS = [
 ];
 const RANGE_DEFS = [
   {k:"bOk0", label:"Bouldering ideal from", def:36, min:15, max:60, unit:"°F"},
-  {k:"bOk1", label:"Bouldering ideal to",   def:55, min:30, max:80, unit:"°F"},
+  {k:"bOk1", label:"Bouldering ideal to",   def:60, min:30, max:80, unit:"°F"},
   {k:"rOk0", label:"Sport & trad ideal from", def:46, min:20, max:70, unit:"°F"},
   {k:"rOk1", label:"Sport & trad ideal to",   def:65, min:35, max:90, unit:"°F"},
   {k:"rhMax",label:"Humidity fine up to",   def:55, min:25, max:85, unit:"%"},
@@ -421,6 +422,8 @@ function solarPos(lat,lon,utcMs){
   return {el:el/r, az:((az/r)+360)%360};
 }
 const FACE_AZ={N:0,E:90,S:180,W:270};
+// Canyon crags lose low-angle sun to the canyon walls (an approximation until terrain data is added).
+CRAGS.forEach(c=>{ c.canyon = /Canyon|Cañon|Gorge|Clear Creek|Narrows|Palace/.test(c.name) && !/Chaos/.test(c.name); });
 // Direct sun reaching the climbing surface, 0 (shade) to 1 (full sun), for one hour.
 // Oriented walls: beam sunlight projected onto a vertical face pointing that way, so a wall goes into shade once the sun
 // swings behind it or the sky clouds over. Mixed boulder fields: sun on open, upward-facing rock (tops, slabs, aretes).
@@ -428,10 +431,14 @@ function sunOnRock(c,w,h){
   const p=w.sun[h]; if(!p||p.el<=1) return 0;
   // Forecast radiation is the mean of the hour BEFORE its timestamp; slot h covers h:00–h+1:00, so read stamp h+1.
   const k=Math.min(h+1,(w.dr||w.sw).length-1), dirH=w.dr? (w.dr[k]||0) : (w.sw[k]||0)*0.75;   // direct beam on a horizontal surface, W/m²
-  if(FACE_AZ[c.aspect]==null) return clamp(dirH/650);
-  const dni=Math.min(1000, dirH/Math.sin(p.el*Math.PI/180));
-  const inc=Math.cos(p.el*Math.PI/180)*Math.cos((p.az-FACE_AZ[c.aspect])*Math.PI/180);
-  return clamp(dni*Math.max(0,inc)/650);
+  const blocked = c.canyon ? clamp((p.el-12)/16) : 1;      // canyon walls block sun below ~12–28° elevation
+  const dni=Math.min(1000, dirH/Math.sin(p.el*Math.PI/180)), cosEl=Math.cos(p.el*Math.PI/180);
+  const proj=az=>Math.max(0,Math.cos((p.az-az)*Math.PI/180));
+  if(FACE_AZ[c.aspect]!=null) return clamp(blocked*dni*cosEl*proj(FACE_AZ[c.aspect])/650);
+  // Mixed boulder fields: sun on open, upward-facing rock (tops, slabs, aretes).
+  if(c.styles[0]==="boulder") return clamp(blocked*dirH/650);
+  // Mixed roped crags: walls face every way, so average the beam over north, east, south and west faces.
+  return clamp(blocked*dni*cosEl*(proj(0)+proj(90)+proj(180)+proj(270))/4/650);
 }
 function addSun(wx){                                          // precompute sun position per crag and hour
   wx.byCrag.forEach((w,j)=>{ const c=CRAGS[j];
@@ -496,15 +503,20 @@ function wetness(c,w){
   }
   return out;
 }
+function apparentT(t,rh,ws){ const C=(t-32)/1.8, e=rh/100*6.105*Math.exp(17.27*C/(237.7+C)); return (C+0.33*e-0.70*ws*0.447-4)*1.8+32; }
 function hourScore(c,w,h,wet,T){
   const hr = Number(state.wx.times[h].slice(11,13));
   // Sun vs cloud: sunlight heats the rock (good when cold, bad when warm); cloud keeps it near air temperature.
   const sun = w.day[h] ? sunOnRock(c,w,h) : 0;
   const diffuse = w.df ? clamp((w.df[Math.min(h+1,w.df.length-1)]||0)/250) : 0;
   const t = w.t[h], rh = w.rh[h], ws = w.ws[h]||0, td = w.td ? w.td[h] : t-(100-rh)/2.8;
-  // Sunlit rock commonly runs 20–30°F above air temperature; bright overcast adds a little.
-  let feel = t + sun*24 + diffuse*3;
-  if (ws>10) feel -= (ws-10)*0.35;                       // wind chill on rock and fingers
+  const at = w.at ? w.at[h] : apparentT(t,rh,ws);         // feels-like (Steadman apparent temperature)
+  // Friction temperature blends the rock and your skin. Rock: air plus sun (sunlit rock runs 20–30°F above air;
+  // less on average where walls face every way). Skin: pulled down by wind and dry air, as feels-like captures.
+  const rockT = t + sun*(FACE_AZ[c.aspect]!=null||c.styles[0]!=="boulder" ? 24 : 15) + diffuse*3;
+  let feel = rockT - 0.5*Math.max(0, t-at);
+  // Cold hands: once feels-like nears freezing, fingers go numb regardless of friction.
+  const coldF = weigh(W.cold, lerp(at,27,34,0,1));
   const tS = feel<T.ok0 ? lerp(feel,T.lo,T.ok0,0,1) : feel<=T.ok1 ? 1 : lerp(feel,T.ok1,T.hi,1,0);
   // Humidity is a hump, not a straight line: fingertip friction peaks at moderate skin moisture,
   // very dry air leaves tips "glassy" (worse when cold), and above ~60–70% RH holds start to feel greasy.
@@ -521,11 +533,11 @@ function hourScore(c,w,h,wet,T){
   // Condensation: when air sits within a few degrees of its dew point and the rock is unlit, a film of moisture forms.
   const spread = t - td, cond = (spread<5 && sun<0.25) ? weigh(W.dew, lerp(spread,0,5,0,1)) : 1;
   // Multiplicative: one bad factor drags the hour down, like it does at the crag.
-  const base = weigh(W.temp,Math.pow(tS,0.8)) * weigh(W.hum,hS) * weigh(W.wind,wS) * cond * glare;
+  const base = weigh(W.temp,Math.pow(tS,0.8)) * coldF * weigh(W.hum,hS) * weigh(W.wind,wS) * cond * glare;
   const rainNow = (w.p[h]||0)>0.01 ? 0.05 : 1;
   const prob = weigh(W.rain, lerp(w.pp[h]??0, 40, 90, 1, 0));
   const wetM = 1 - W.wet*clamp(wet[h]/0.08);
-  return {s:Math.round(100*clamp(base*rainNow*prob*wetM)), feel, wet:wet[h], sun, cond, spread, glare};
+  return {s:Math.round(100*clamp(base*rainNow*prob*wetM)), feel, at, coldF, wet:wet[h], sun, cond, spread, glare};
 }
 // Score every hour of a crag for one style, cached.
 const hourCache = new Map();
@@ -570,6 +582,8 @@ function dayResult(c,j,style,d){
   else if (rhAvg<20 && avg(h=>w.t[h])<35) notes.push(`very dry, cold air (${Math.round(rhAvg)}%); tips can feel glassy`);
   else if (rhAvg>=20 && rhAvg<=55 && feel>=T.ok0-4) notes.push(`good friction humidity (${Math.round(rhAvg)}%)`);
   if (condMin<0.85) notes.push("air near its dew point; shaded rock may feel damp");
+  const coldMin=Math.min(...win.map(h=>hs[h].coldF));
+  if (coldMin<0.9) notes.push(`feels like ${Math.round(Math.min(...win.map(h=>hs[h].at)))}°F; expect cold, numb fingers`);
   if (wsAvg>=4 && wsAvg<=12 && rhAvg<70) notes.push("light breeze keeps holds dry");
   else if (wsAvg<3 && feel>T.ok1-5) notes.push("still air; expect sweaty hands");
   if (FACE_AZ[c.aspect]!=null){
@@ -589,7 +603,7 @@ function dayResult(c,j,style,d){
 const rating = s => s>=80?["prime","Prime"]:s>=62?["good","Good"]:s>=40?["fair","Fair"]:["poor","Poor"];
 
 // ---------- data ----------
-const HOURLY="temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m,shortwave_radiation,direct_radiation,diffuse_radiation,is_day";
+const HOURLY="temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature,precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m,shortwave_radiation,direct_radiation,diffuse_radiation,is_day";
 async function loadLive(){
   const parts = await Promise.all(chunks(CRAGS,40).map(loadChunk));
   return addSun({times:parts[0].times, offset:parts[0].offset, byCrag:parts.flatMap(p=>p.byCrag)});
@@ -605,7 +619,7 @@ async function loadChunk(list){
   if(!res.ok) throw new Error("HTTP "+res.status);
   let arr = await res.json(); if(!Array.isArray(arr)) arr=[arr];
   return {times:arr[0].hourly.time, offset:arr[0].utc_offset_seconds??-25200, byCrag:arr.map(o=>{const H=o.hourly; return {
-    t:H.temperature_2m, rh:H.relative_humidity_2m, td:H.dew_point_2m, p:H.precipitation, pp:H.precipitation_probability,
+    t:H.temperature_2m, rh:H.relative_humidity_2m, td:H.dew_point_2m, at:H.apparent_temperature, p:H.precipitation, pp:H.precipitation_probability,
     ws:H.wind_speed_10m, wg:H.wind_gusts_10m, sw:H.shortwave_radiation, dr:H.direct_radiation, df:H.diffuse_radiation, day:H.is_day};})};
 }
 // Example conditions for views that can't reach the forecast service. Deterministic, elevation-aware, clearly labelled.
@@ -619,7 +633,7 @@ function sampleData(){
   const warm=[0,-6,-2,3,-4,1,4], cloudy=[.3,.8,.4,.15,.55,.2,.35], windy=[9,14,8,7,18,11,9];
   const byCrag=CRAGS.map((c,j)=>{
     const lapse=(c.elev-5300)/1000*3.6, jit=k=>((j*7+k*13)%5)-2, wetter=c.elev>8000?1.4:1;
-    const o={t:[],rh:[],td:[],p:[],pp:[],ws:[],wg:[],sw:[],dr:[],df:[],day:[]};
+    const o={t:[],rh:[],td:[],at:[],p:[],pp:[],ws:[],wg:[],sw:[],dr:[],df:[],day:[]};
     for(let h=0;h<N;h++){
       const d=Math.floor(h/24), hr=h%24, daylight=hr>=7&&hr<=17;
       const diurnal=Math.cos((hr-15)/24*2*Math.PI);              // peak 3 pm
@@ -632,6 +646,7 @@ function sampleData(){
       o.td.push(+(o.t[o.t.length-1]-(100-o.rh[o.rh.length-1])/2.8).toFixed(1));
       const wsp=windy[d]*(c.elev>10000?1.8:1)*(0.7+0.5*clamp(diurnal+0.3));
       o.ws.push(Math.round(wsp)); o.wg.push(Math.round(wsp*1.6));
+      o.at.push(+apparentT(o.t[o.t.length-1],o.rh[o.rh.length-1],o.ws[o.ws.length-1]).toFixed(1));
       const swv=daylight?Math.round(800*Math.sin((hr-6)/12*Math.PI)*(1-cloudy[d]*0.8)*(storm?0.3:1)):0;
       o.sw.push(swv); o.dr.push(Math.round(swv*(1-cloudy[d])*(storm?0.2:1))); o.df.push(swv-o.dr[o.dr.length-1]);
       o.day.push(hr>=7&&hr<=17?1:0);
@@ -723,7 +738,7 @@ function drawChart(box){
     const dot=cross.querySelector(".dot"); dot.setAttribute("cx",x(h)); dot.setAttribute("cy",ys(sc)); dot.style.fill=`var(--${rating(sc)[0]})`;
     const td=cross.querySelector(".tdot"); td.setAttribute("cx",x(h)); td.setAttribute("cy",yt(w.t[h]));
     const p=w.p[h]||0;
-    tip.innerHTML=`<b>${hourLabel(h)}</b><span>Score ${sc} · ${lab}</span><span>${Math.round(w.t[h])}°F · ${Math.round(w.rh[h])}% RH${w.td?` · dew pt ${Math.round(w.td[h])}°`:""}</span>${w.day[h]?`<span>${(w.dr?w.dr[h]:w.sw[h])>250?"Clear":(w.dr?w.dr[h]:w.sw[h])>80?"Partly cloudy":"Cloudy"} · ${hs[h].sun>0.5?"rock in direct sun":hs[h].sun>0.15?"rock in partial sun":"rock in shade"}</span>`:""}<span>Wind ${Math.round(w.ws[h])}, gusts ${Math.round(w.wg[h]||0)} mph</span>${p>0.005?`<span>Rain ${p.toFixed(2)}"</span>`:""}${hs[h].wet>0.03?`<span>Rock likely wet</span>`:""}`;
+    tip.innerHTML=`<b>${hourLabel(h)}</b><span>Score ${sc} · ${lab}</span><span>${Math.round(w.t[h])}°F, feels ${Math.round(hs[h].at)}° · ${Math.round(w.rh[h])}% RH${w.td?` · dew pt ${Math.round(w.td[h])}°`:""}</span>${w.day[h]?`<span>${(w.dr?w.dr[h]:w.sw[h])>250?"Clear":(w.dr?w.dr[h]:w.sw[h])>80?"Partly cloudy":"Cloudy"} · ${hs[h].sun>0.5?"rock in direct sun":hs[h].sun>0.15?"rock in partial sun":"rock in shade"}</span>`:""}<span>Wind ${Math.round(w.ws[h])}, gusts ${Math.round(w.wg[h]||0)} mph</span>${p>0.005?`<span>Rain ${p.toFixed(2)}"</span>`:""}${hs[h].wet>0.03?`<span>Rock likely wet</span>`:""}`;
     tip.hidden=false;
     const left=x(h)*(rect.width/W), tw=tip.offsetWidth;
     tip.style.left=Math.max(0,Math.min(rect.width-tw, left+12>rect.width-tw?left-tw-12:left+12))+"px";
